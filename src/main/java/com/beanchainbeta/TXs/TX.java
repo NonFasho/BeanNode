@@ -113,7 +113,7 @@ public class TX {
     //runs a lot of boolean checks to decide if the transaction is valid and can be added to a new block 
     public  boolean verfifyTransaction() throws Exception{
         //debug
-        this.debugHashValues();
+        //this.debugHashValues();
         //end-debug
 
         boolean hasAddy = (this.from !=null);

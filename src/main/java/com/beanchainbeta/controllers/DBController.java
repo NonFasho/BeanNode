@@ -38,7 +38,7 @@ public class DBController {
         String transactionJson = request.get("transactionJson");
 
         System.out.println("txHash: " + txHash);
-        System.out.println("transactionJson (string): " + transactionJson);
+        //System.out.println("transactionJson (string): " + transactionJson);
 
         if (txHash == null || transactionJson == null) {
             return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Missing txHash or transactionJson\"}");
@@ -105,7 +105,7 @@ public class DBController {
             
             //** TEST TEST TEST */
             //System.out.println("📥 Rejected TXs for " + address + ": " + rejected.size());
-            rejected.forEach((hash, json) -> System.out.println(" - " + hash + ": " + json));
+            //rejected.forEach((hash, json) -> System.out.println(" - " + hash + ": " + json));
             //**TEST END TEST END */
 
             return ResponseEntity
