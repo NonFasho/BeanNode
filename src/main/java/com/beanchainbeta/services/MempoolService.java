@@ -54,7 +54,7 @@ public class MempoolService {
                         System.err.println("Error deleting accepted TX from DB: " + e.getMessage());
                     }
                 } else {
-                    System.out.println(txHash + ": not found in mempool");
+                    //System.out.println(txHash + ": not found in mempool");
                 }
             }
         
@@ -81,17 +81,17 @@ public class MempoolService {
         ConcurrentHashMap<String, String> result = new ConcurrentHashMap<>();
 
         //** TEST TEST TEST */
-        System.out.println("Looking for rejected TXs from: " + address);
+        //System.out.println("Looking for rejected TXs from: " + address);
         //** TEST END TEST END */
     
         for (Map.Entry<String, TX> entry : rejectedTransactions.entrySet()) {
             TX tx = entry.getValue();
             if (tx.getFrom().equals(address)) {
 
-                System.out.println("Comparing: " + tx.getFrom() + " vs. " + address);
+                //System.out.println("Comparing: " + tx.getFrom() + " vs. " + address);
 
 
-                System.out.println("   ✔ Match: " + tx.getTxHash());
+                //System.out.println("   ✔ Match: " + tx.getTxHash());
 
                 result.put(entry.getKey(), tx.createJSON());
             }
@@ -121,7 +121,7 @@ public class MempoolService {
         ArrayList<TX> txList = new ArrayList<>();
         for( String d: transactions.values()) {
         txList.add(TX.fromJSON(d));
-        System.out.println(TX.fromJSON(d));
+        //System.out.println(TX.fromJSON(d));
     }
     return txList; 
     }

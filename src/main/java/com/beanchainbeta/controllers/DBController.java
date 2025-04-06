@@ -54,7 +54,7 @@ public class DBController {
         }
 
         // Optional: Validate the reconstructed TX if needed
-        System.out.println("✅ TX Object: " + tx.getFrom() + " → " + tx.getTo());
+        //System.out.println("✅ TX Object: " + tx.getFrom() + " → " + tx.getTo());
 
         if (mempoolService.addTransaction(txHash, transactionJson)) {
             return ResponseEntity.ok("{\"status\": \"success\", \"txHash\": \"" + txHash + "\"}");
@@ -104,7 +104,7 @@ public class DBController {
             ConcurrentHashMap<String, String> rejected = MempoolService.getRejectedTransactions(address);
             
             //** TEST TEST TEST */
-            System.out.println("📥 Rejected TXs for " + address + ": " + rejected.size());
+            //System.out.println("📥 Rejected TXs for " + address + ": " + rejected.size());
             rejected.forEach((hash, json) -> System.out.println(" - " + hash + ": " + json));
             //**TEST END TEST END */
 

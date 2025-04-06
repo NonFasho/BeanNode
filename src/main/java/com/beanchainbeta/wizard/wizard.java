@@ -11,9 +11,9 @@ import java.math.BigInteger;
 import java.util.Random;
 
 public class wizard {
-    static String path = "D:/WIZPK/wizard.txt";
+    
 
-    public static void saveKeyToWizard(String privateHash) {
+    public static void saveKeyToWizard(String privateHash, String path) {
         String wizardString = numberChainGenerator(42) + "::" + numberChainGenerator(4) + privateHash + numberChainGenerator(4) + "::" + numberChainGenerator(24);
         try(BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
             writer.write(wizardString);
@@ -23,12 +23,13 @@ public class wizard {
 
     }
 
-    public static String wizardRead() throws IOException{
+    public static String wizardRead(String path) throws IOException{
         BufferedReader reader = new BufferedReader(new FileReader(path));
         String wizardKey = reader.readLine();
         String[] parts = wizardKey.split("::");
         String middieRib = parts[1];
         String retrievedHash = middieRib.substring(4, middieRib.length() - 4);
+        reader.close();
         return retrievedHash;
     }
 
@@ -42,11 +43,11 @@ public class wizard {
         return digits.toString();
     }
 
-    public static String wizardCheck() throws IOException{
+    public static String wizardCheck(String path) throws IOException{
         File file = new File(path);
         if (file.exists()) {
             System.out.println("File exists!");
-            return (wizardRead());
+            return (wizardRead(path));
         } else {
             System.out.println("File does not exist.");
             return null;
@@ -55,22 +56,13 @@ public class wizard {
 
     }
 
-    //testing
-    //
-    //
 
-    // public static void wizCheckSignIn() throws IOException {
-    //     String privateHash = (wizardCheck());
-    //     //fix later 
-    //     NodeBeta.currentPrivateHash = privateHash;
-        
-    // }
 
     
     
     public static void main(String[] args) throws Exception {
 
-        System.out.println(wizardCheck());
+        
     }
     
     
