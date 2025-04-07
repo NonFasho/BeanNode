@@ -48,7 +48,7 @@ public class WalletService {
             String toKey = tx.getTo();
             double amount = tx.getAmount();
             InBeanTx(toKey, amount);   
-            outBeanTx(tx.getFrom(), amount, tx.getNonce());
+            outBeanTx(tx.getFrom(), amount, tx.getNonce(), tx.getGasFee());
 
         }
     }
@@ -57,18 +57,24 @@ public class WalletService {
     //end dev testing wallet storage 
 
     // update sender wallet state 
-    private static void outBeanTx(String from, double amount, int nonce) throws IOException{
+    private static void outBeanTx(String from, double amount, int nonce, long gasFee) throws IOException{
         ObjectMapper mapper = new ObjectMapper();
         String fromKey = from;
-        long beantoshi = beantoshinomics.toBeantoshi(amount);
 
+        if (!beantoshinomics.isValidAmount(String.valueOf(amount))) {
+            System.out.println("Invalid amount in outBeanTx: " + amount);
+            return;
+        }
+
+        long beantoshi = beantoshinomics.toBeantoshi(amount);
+        long totalCost = beantoshi + gasFee;
         byte[] fromJsonWallet = db.get(fromKey.getBytes(StandardCharsets.UTF_8));
 
         //update sender wallet
         if(fromJsonWallet != null) {
             ObjectNode walletNode = (ObjectNode) mapper.readTree(new String(fromJsonWallet, StandardCharsets.UTF_8));
             long currentBeantoshi = walletNode.get("beantoshi").asLong();
-            long newBalance = currentBeantoshi - beantoshi;
+            long newBalance = currentBeantoshi - totalCost;
             walletNode.put("beantoshi", newBalance);
             walletNode.put("nonce", (nonce + 1));
 
@@ -83,8 +89,13 @@ public class WalletService {
     private static void InBeanTx(String to, double amount) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         String toKey = to;
+
+        if (!beantoshinomics.isValidAmount(String.valueOf(amount))) {
+            System.out.println("Invalid amount in InBeanTx: " + amount);
+            return;
+        }
+
         long beantoshi = beantoshinomics.toBeantoshi(amount);
-    
         byte[] toJsonWallet = db.get(toKey.getBytes(StandardCharsets.UTF_8));
         ObjectNode walletNode;
     
@@ -103,7 +114,7 @@ public class WalletService {
             System.out.println("No Wallet Found for: " + to + ", creating new one.");
             walletNode = mapper.createObjectNode();
             if(getBeanBalance("BEANX:0xEARLYWALLET") > 100){
-                TX tx = new TX("BEANX:0xEARLYWALLET","SYSTEM", to, 100 ,getNonce("BEANX:0xEARLYWALLET"));
+                TX tx = new TX("BEANX:0xEARLYWALLET","SYSTEM", to, 100 ,getNonce("BEANX:0xEARLYWALLET"), 0);
                 tx.setSignature("GENESIS-SIGNATURE");
                 MempoolService.addTransaction(tx.getTxHash(), tx.createJSON());
             }
@@ -134,7 +145,6 @@ public class WalletService {
     
         System.out.println("Successfully updated wallet for: " + to);
     }
-    
     
     //close DB
     public void closeDB() {
@@ -170,22 +180,24 @@ public class WalletService {
     
         return balance;
     }
+
+    public static boolean hasCorrectAmount(String addy, double amount, long gasFee) {
+        double totalRequired = amount + beantoshinomics.toBean(gasFee);
+        double balance = getBeanBalance(addy);
     
-
-    public static boolean hasCorrectAmount(String addy, double amount) {
-        boolean test = false;
-        
-        System.out.println(amount + " vs " + getBeanBalance(addy));
-
-        if(getBeanBalance(addy) >= amount){
-            test = true;
-        }
-        return test;
+        //System.out.println("Checking balance: " + balance + " BEAN vs required: " + totalRequired + " BEAN");
+    
+        return balance >= totalRequired;
     }
 
     public static void transfer(TX tx) throws IOException {
-        outBeanTx(tx.getFrom(), tx.getAmount(), tx.getNonce());
+        outBeanTx(tx.getFrom(), tx.getAmount(), tx.getNonce(), tx.getGasFee());
         InBeanTx(tx.getTo(), tx.getAmount());
+
+        if (tx.getGasFee() > 0) {
+            InBeanTx("BEANX:0xGASPOOL", beantoshinomics.toBean(tx.getGasFee()));
+            System.out.println("Credited " + tx.getGasFee() + " beantoshi to GASPOOL from " + tx.getFrom());
+        }
         
     }
 
@@ -245,8 +257,6 @@ public class WalletService {
         return newNonce;
     }
 
-    
-
     public static List<StateWallet> getAllWallets() {
         List<StateWallet> txs = new ArrayList<>();
 
@@ -268,22 +278,5 @@ public class WalletService {
         return txs;
     }
 
-
-
-    public static void main(String[] args) throws Exception {
-        WalletService service = new WalletService();
-
-        InBeanTx("BEANX:0xf4f99e50d2f333c4b5130a0807906aaf0d512280", 500);
-
-        //System.out.println(getBeanBalance("BEANX:0xf4f99e50d2f333c4b5130a0807906aaf0d512280"));
-        getAllWallets();
-        System.out.println(getNonce("BEANX:0xf4f99e50d2f333c4b5130a0807906aaf0d512280"));
-
-        
-        
-        
-        
-
-    }
 }
 

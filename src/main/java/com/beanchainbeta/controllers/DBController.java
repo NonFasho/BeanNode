@@ -15,8 +15,8 @@ import com.beanchainbeta.TXs.TX;
 import com.beanchainbeta.services.MempoolService;
 import com.beanchainbeta.services.WalletService;
 import com.beanchainbeta.services.blockchainDB;
+import com.beanchainbeta.tools.beantoshinomics;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.net.MediaType;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -53,8 +53,9 @@ public class DBController {
             return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Invalid transaction JSON\"}");
         }
 
-        // Optional: Validate the reconstructed TX if needed
-        //System.out.println("✅ TX Object: " + tx.getFrom() + " → " + tx.getTo());
+        if (!beantoshinomics.isValidAmount(String.valueOf(tx.getAmount()))) {
+            return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Invalid amount: must be a valid multiple of 0.000001 BEAN and at least 1 beantoshi\"}");
+        }
 
         if (mempoolService.addTransaction(txHash, transactionJson)) {
             return ResponseEntity.ok("{\"status\": \"success\", \"txHash\": \"" + txHash + "\"}");

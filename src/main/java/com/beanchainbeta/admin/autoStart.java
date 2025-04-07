@@ -1,7 +1,5 @@
 package com.beanchainbeta.admin;
 
-import java.util.Scanner;
-
 import org.springframework.boot.SpringApplication;
 
 import com.beanchainbeta.BeanChainApi;

@@ -7,6 +7,7 @@ import com.beanchainbeta.nodePortal.portal;
 import com.beanchainbeta.services.MempoolService;
 import com.beanchainbeta.services.WalletService;
 import com.beanchainbeta.services.blockchainDB;
+import com.beanchainbeta.tools.WalletGenerator;
 
 public class BlockBuilder {
     static ArrayList<TX> acceptedTx = new ArrayList<>();
@@ -34,6 +35,8 @@ public class BlockBuilder {
                 //System.out.println(MempoolService.getRejectedTransactions(tx.getFrom()));
             }
         }
+        validTxs.sort((a, b) -> Long.compare(b.getGasFee(), a.getGasFee()));
+
         return validTxs;
     }
 
@@ -43,6 +46,7 @@ public class BlockBuilder {
     
         int maxBytes = 1000000;
         int blockBytes = 0;
+        long totalGas = 0;
     
         
         Iterator<TX> iterator2 = systemTX.iterator();
@@ -53,7 +57,7 @@ public class BlockBuilder {
             acceptedTx.add(tx2);
             WalletService.genTxProcess(tx2);
             portal.beanchainTest.storeTX(tx2);
-            txJsonData.add(tx2.createJSON());
+            txJsonData.add(tx2.getTxHash());
             iterator2.remove();
         }
     
@@ -64,10 +68,23 @@ public class BlockBuilder {
             int sizeInBytes = tx.createJSON().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
             blockBytes += sizeInBytes;
             acceptedTx.add(tx);
+
+            totalGas += tx.getGasFee();
+
             WalletService.transfer(tx);
             portal.beanchainTest.storeTX(tx);
-            txJsonData.add(tx.createJSON());
+            txJsonData.add(tx.getTxHash());
             iterator.remove();
+        }
+
+        String addy = WalletGenerator.generateAddress(WalletGenerator.generatePublicKey(WalletGenerator.restorePrivateKey(validatorKey)));
+        if (totalGas > 0) {
+            TX tx = new TX("BEANX:0xGASPOOL","SYSTEM", addy , totalGas , WalletService.getNonce("BEANX:0xGASPOOL"), 0);
+            WalletService.transfer(tx);
+            portal.beanchainTest.storeTX(tx);
+            txJsonData.add(tx.getTxHash());
+            acceptedTx.add(tx);
+            System.out.println("Validator " + validatorKey + " rewarded with " + totalGas + " beantoshi");
         }
     
         Block newBlock = new Block(
@@ -79,7 +96,7 @@ public class BlockBuilder {
     
         portal.beanchainTest.storeNewBlock(newBlock);
         MempoolService.removeTXs(acceptedTx, MempoolService.rejectedTransactions);
-        acceptedTx.clear();
+        acceptedTx.clear();  
     }
 
 }

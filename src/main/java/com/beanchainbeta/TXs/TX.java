@@ -19,6 +19,7 @@ public class TX {
     private long timeStamp;
     private String txHash;
     private String signature;
+    private long gasFee;
 
     public TX(){
 
@@ -26,7 +27,7 @@ public class TX {
 
     // for wallet app functions 
     // 
-    public TX(String from, String publicKeyHex, String to, double amount, int nonce) {
+    public TX(String from, String publicKeyHex, String to, double amount, int nonce, long gasFee) {
         this.from = from;
         this.publicKeyHex = publicKeyHex;
         this.to = to;
@@ -34,6 +35,7 @@ public class TX {
         this.timeStamp = System.currentTimeMillis();
         this.nonce = nonce;
         this.txHash = generateHash();
+        this.gasFee = gasFee;
     }
 
     public String getFrom() {return from;}
@@ -44,6 +46,7 @@ public class TX {
     public long getTimeStamp() {return timeStamp;}
     public String getTxHash() {return txHash;}
     public String getSignature() {return signature;}
+    public long getGasFee() {return gasFee;}
 
     public void setFrom(String from) {this.from = from;}
     public void setNonce(int nonce) {this.nonce = nonce;}
@@ -53,6 +56,7 @@ public class TX {
     public void setTimeStamp(long timeStamp) {this.timeStamp = timeStamp;}
     public void setTxHash(String txHash) {this.txHash = txHash;}
     public void setSignature(String signature) {this.signature = signature;}
+    public void setGasFee(long gasFee) {this.gasFee = gasFee;}
 
     private String generateHash(){
         try {
@@ -134,7 +138,7 @@ public class TX {
             //System.out.println("addymatch " + addyMatch);
             validOwner = TransactionVerifier.verifySHA256Transaction(publicKeyHex, hexToBytes(txHash), signature);
             //System.out.println("validowner " + validOwner);
-            senderHasEnough = WalletService.hasCorrectAmount(from, amount);
+            senderHasEnough = WalletService.hasCorrectAmount(from, amount, gasFee);
             //System.out.println("sender has enough " + senderHasEnough);
             if(addyMatch && validOwner && senderHasEnough) {
                 WalletService.incrementNonce(this.from);
@@ -163,9 +167,6 @@ public class TX {
         System.out.println("Data: " + from + to + amount + timeStamp + nonce);
         System.out.println("Generated Hash: " + generateHash());
         System.out.println("Stored Hash: " + txHash);
+        System.out.println("Gas Fee In Beantoshi: " + gasFee);
     }
-    
-
-
-
 }
