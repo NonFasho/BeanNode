@@ -60,6 +60,7 @@ public class WalletService {
     private static void outBeanTx(String from, double amount, int nonce, long gasFee) throws IOException{
         ObjectMapper mapper = new ObjectMapper();
         String fromKey = from;
+        System.out.println("Gas from frontend: " + gasFee);
 
         if (!beantoshinomics.isValidAmount(String.valueOf(amount))) {
             System.out.println("Invalid amount in outBeanTx: " + amount);
@@ -159,16 +160,42 @@ public class WalletService {
         return asString(db.get(bytes(key)));
     }
 
-    public static double getBeanBalance(String addy){
+    public static double getBeanBalance(String addy) {
         String json = getData(addy);
         double balance = 0;
         ObjectMapper objectMapper = new ObjectMapper();
     
         try {
             if (json == null) {
-                System.err.println("⚠️ No data found for address: " + addy);
+                System.err.println("⚠️ No data found for address: " + addy + ". Creating new wallet...");
+            
+                ObjectNode newWallet = objectMapper.createObjectNode();
+                newWallet.put("beantoshi", 0);
+                newWallet.put("nonce", 0);
+            
+                // ⛔ Prevent recursion for the early wallet itself
+                if (!addy.equals("BEANX:0xEARLYWALLET")) {
+                    double earlyBalance = getBeanBalance("BEANX:0xEARLYWALLET");
+                    if (earlyBalance > 100) {
+                        TX tx = new TX(
+                            "BEANX:0xEARLYWALLET",
+                            "SYSTEM",
+                            addy,
+                            100,
+                            getNonce("BEANX:0xEARLYWALLET"),
+                            0
+                        );
+                        tx.setSignature("GENESIS-SIGNATURE");
+                        MempoolService.addTransaction(tx.getTxHash(), tx.createJSON());
+                        System.out.println("🌱 Early wallet airdrop initialized for: " + addy);
+                    }
+                }
+            
+                String newWalletJson = objectMapper.writeValueAsString(newWallet);
+                db.put(addy.getBytes(StandardCharsets.UTF_8), newWalletJson.getBytes(StandardCharsets.UTF_8));
                 return 0.0;
             }
+            
     
             JsonNode rootNode = objectMapper.readTree(json);
             long beantoshiBalance = rootNode.get("beantoshi").asLong();

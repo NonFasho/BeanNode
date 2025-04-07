@@ -62,8 +62,8 @@ public class blockchainDB {
 
 
     private Boolean checkGenBlock() {
-        byte[] data = db.get(bytes("block-0"));
-        return data != null;
+        byte[] data = db.get(bytes("genesis-created"));
+        return data != null && asString(data).equals("true");
 
     }
     public static Boolean checkBlock() {
@@ -122,6 +122,9 @@ public class blockchainDB {
         for(TX t: confirmed){
             storeTX(t);
         }
+
+        db.put(bytes("genesis-created"), bytes("true"));
+
     }
 
     public List<Block> getAllBlocks() {

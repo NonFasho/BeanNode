@@ -59,6 +59,7 @@ public class wizard {
     
     
     public static void main(String[] args) throws Exception {
+    System.out.println(wizardRead("D:/WIZPK/wizard.txt"));
 
         
     }
