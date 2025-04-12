@@ -1,23 +1,23 @@
 package com.beanchainbeta.admin;
 
-import org.springframework.boot.SpringApplication;
-
-import com.beanchainbeta.BeanChainApi;
-import com.beanchainbeta.Validation.TimerFunc;
 import com.beanchainbeta.config.ConfigLoader;
 import com.beanchainbeta.nodePortal.portal;
 import com.beanchainbeta.services.CleanupService;
+import com.beanchainbeta.services.MempoolService;
+import com.beanchainbeta.services.WalletService;
+import com.beanchainbeta.services.blockchainDB;
 import com.beanchainbeta.wizard.wizard;
 
-public class autoStart {
-    
-
+public class autoStartPrivate {
     public static void nodeStart() throws Exception {
+        blockchainDB chain = new blockchainDB();
+        MempoolService mempoolService = new MempoolService();
+        WalletService walletService = new WalletService();
         
         
         System.out.println("🫘 BeanChain Node Initializing...");
         System.out.println("▶ IP : " + ConfigLoader.bindAddress);
-    
+        
 
         boolean signedIn = false;
         while (!signedIn) {
@@ -35,12 +35,12 @@ public class autoStart {
     }
 
     private static void signInSuccess(){
-        Thread springThread = new Thread(() -> {
-                    SpringApplication.run(BeanChainApi.class);
-                }, "SpringThread");
+        // Thread springThread = new Thread(() -> {
+        //             SpringApplication.run(BeanChainApi.class);
+        //         }, "SpringThread");
 
-        springThread.setDaemon(false);
-        springThread.start();
+        // springThread.setDaemon(false);
+        // springThread.start();
         System.out.println("SIGN IN SUCCESS");
 
         try {
@@ -49,10 +49,10 @@ public class autoStart {
             e.printStackTrace();
         }
 
-        System.out.print("\033[H\033[2J");  
-        System.out.flush();
+        //System.out.print("\033[H\033[2J");  
+        //System.out.flush();
         System.out.println("\u001B[32m" + prompt.logo + "\u001B[0m"); 
-        TimerFunc.nodeFleccer();
+        // TimerFunc.nodeFleccer();
         new Thread(() -> {
             while (true) {
                 try {
@@ -65,3 +65,5 @@ public class autoStart {
         }).start();
     }
 }
+    
+

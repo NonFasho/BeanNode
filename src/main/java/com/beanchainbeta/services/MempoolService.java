@@ -43,6 +43,8 @@ public class MempoolService {
             return false;
         }
 
+        
+
         public static void removeTXs(ArrayList<TX> acceptedTxs, ConcurrentHashMap<String, TX> rejectedTxs) {
             for (TX tx : acceptedTxs) {
                 String txHash = tx.getTxHash();
@@ -71,36 +73,27 @@ public class MempoolService {
                 }
             }
         }
+
+        public static void removeSingleTx(String txHash) {
+            if (transactions.containsKey(txHash)) {
+                transactions.remove(txHash);
+                try {
+                    db.delete(bytes(txHash));
+                    System.out.println("Removed TX from mempool DB and memory: " + txHash);
+                } catch (Exception e) {
+                    System.err.println("Error deleting TX from DB: " + txHash);
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("TX not found in mempool: " + txHash);
+            }
+        }
+        
         
     
     public ConcurrentHashMap<String, String> getTransactions() {
         return transactions;
     }
-
-    public static ConcurrentHashMap<String, String> getRejectedTransactions(String address) {
-        ConcurrentHashMap<String, String> result = new ConcurrentHashMap<>();
-
-        //** TEST TEST TEST */
-        //System.out.println("Looking for rejected TXs from: " + address);
-        //** TEST END TEST END */
-    
-        for (Map.Entry<String, TX> entry : rejectedTransactions.entrySet()) {
-            TX tx = entry.getValue();
-            if (tx.getFrom().equals(address)) {
-
-                //System.out.println("Comparing: " + tx.getFrom() + " vs. " + address);
-
-
-                //System.out.println("   ✔ Match: " + tx.getTxHash());
-
-                result.put(entry.getKey(), tx.createJSON());
-            }
-        }
-
-        return result;
-    }
-    
-
     
     private void loadMempoolFromDB() {
         try (DBIterator iterator = db.iterator()) {
@@ -138,9 +131,23 @@ public class MempoolService {
     
         return pendingTX;
     }
-    
 
+    public static boolean contains(String txHash) {
+        return transactions.containsKey(txHash);
+    }
+
+    public static TX getTransaction(String txHash) {
+        String json = transactions.get(txHash);
+        if (json == null) return null;
     
+        try {
+            return TX.fromJSON(json);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to parse TX from mempool: " + txHash);
+            e.printStackTrace();
+            return null;
+        }
+    }
 
 }
 

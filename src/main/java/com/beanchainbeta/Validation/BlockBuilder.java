@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.beanchainbeta.TXs.TX;
+import com.beanchainbeta.network.Node;
 import com.beanchainbeta.nodePortal.portal;
 import com.beanchainbeta.services.MempoolService;
 import com.beanchainbeta.services.WalletService;
@@ -38,6 +39,7 @@ public class BlockBuilder {
                 validTxs.add(tx);
             } else {
                 //System.out.println("Invalid TX: " + tx.getTxHash());
+                // Store in rejectedDB
                 MempoolService.rejectedTransactions.put(tx.getTxHash(), tx);
                 //System.out.println(MempoolService.getRejectedTransactions(tx.getFrom()));
             }
@@ -48,7 +50,7 @@ public class BlockBuilder {
             groupedBySender
                 .computeIfAbsent(tx.getFrom(), k -> new ArrayList<>())
                 .add(tx);
-                System.out.println("TX: " + tx.getTxHash() + " GAS: " + tx.getGasFee());
+                //System.out.println("TX: " + tx.getTxHash() + " GAS: " + tx.getGasFee());
         }
 
         // Sort each sender's TXs by nonce
@@ -73,13 +75,14 @@ public class BlockBuilder {
         int blockBytes = 0;
         long totalGas = 0;
     
-        
+        systemTX.sort(Comparator.comparing(TX::getTxHash));
         Iterator<TX> iterator2 = systemTX.iterator();
         while (iterator2.hasNext() && blockBytes <= maxBytes) {
             TX tx2 = iterator2.next();
             int sizeInBytes = tx2.createJSON().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
             blockBytes += sizeInBytes;
             acceptedTx.add(tx2);
+            tx2.setStatus("complete");
             WalletService.genTxProcess(tx2);
             portal.beanchainTest.storeTX(tx2);
             txJsonData.add(tx2.getTxHash());
@@ -93,6 +96,7 @@ public class BlockBuilder {
             int sizeInBytes = tx.createJSON().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
             blockBytes += sizeInBytes;
             acceptedTx.add(tx);
+            tx.setStatus("complete");
 
             //LOG
             System.out.println("TX GAS FE: "+ tx.getGasFee());
@@ -115,12 +119,14 @@ public class BlockBuilder {
             TX tx = new TX("BEANX:0xGASPOOL","SYSTEM", addy , beantoshinomics.toBean(totalGas) , WalletService.getNonce("BEANX:0xGASPOOL"), 0);
             tx.setSignature("GENESIS-SIGNATURE");
             WalletService.transfer(tx);
+            tx.setStatus("complete");
             //LOG
             //System.out.print(WalletService.getBeanBalance(addy));
             portal.beanchainTest.storeTX(tx);
             txJsonData.add(tx.getTxHash());
+            Node.broadcastTransactionStatic(tx);
             acceptedTx.add(tx);
-            System.out.println("Validator " + validatorKey + " rewarded with " + totalGas + " beantoshi");
+            //System.out.println("Validator " + validatorKey + " rewarded with " + totalGas + " beantoshi");
         }
     
         Block newBlock = new Block(
@@ -131,8 +137,10 @@ public class BlockBuilder {
         );
     
         portal.beanchainTest.storeNewBlock(newBlock);
+        Node.broadcastBlock(newBlock);
         MempoolService.removeTXs(acceptedTx, MempoolService.rejectedTransactions);
-        acceptedTx.clear();  
+        acceptedTx.clear(); 
+        MempoolService.rejectedTransactions.clear(); 
     }
 
 }

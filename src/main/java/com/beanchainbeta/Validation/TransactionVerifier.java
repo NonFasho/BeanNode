@@ -135,17 +135,17 @@ public class TransactionVerifier {
             // Sample Transaction Hash
             String transactionHashHex = "2c26b46b68ffc68ff99b453c1d30413413422b25b52467f4b4b1e8b9a3d6f605";
             byte[] transactionHash = hexToBytes(transactionHashHex);
-            System.out.println("Transaction Hash at Signing: " + bytesToHex(transactionHash));
+            //System.out.println("Transaction Hash at Signing: " + bytesToHex(transactionHash));
     
             // Sign the Transaction
             String signature = SHA256TransactionSigner.signSHA256Transaction(privateKey, transactionHash);
-            System.out.println("Signed Transaction: " + signature);
+            //System.out.println("Signed Transaction: " + signature);
     
-            System.out.println("Transaction Hash at Verification: " + bytesToHex(transactionHash));
+            //System.out.println("Transaction Hash at Verification: " + bytesToHex(transactionHash));
     
             // Verify using Address instead of Public Key
             boolean isValid = TransactionVerifier.verifySHA256Transaction(address, transactionHash, signature);
-            System.out.println("Signature valid: " + isValid);
+            //System.out.println("Signature valid: " + isValid);
     
         } catch (Exception e) {
             e.printStackTrace();

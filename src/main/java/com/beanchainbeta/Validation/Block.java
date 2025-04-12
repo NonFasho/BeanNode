@@ -3,11 +3,16 @@ package com.beanchainbeta.Validation;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import com.beanchainbeta.TXs.TX;
+import com.beanchainbeta.services.blockchainDB;
+import com.beanchainbeta.services.blockchainDB.BlockInfo;
 import com.beanchainbeta.tools.SHA256TransactionSigner;
 import com.beanchainbeta.tools.WalletGenerator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Block {
@@ -19,6 +24,9 @@ public class Block {
     private long timeStamp;
     private String validatorPubKey;
     private String signature;
+    
+    @JsonIgnore
+    private transient List<TX> fullTransactions = new ArrayList<>();
 
     public int getHeight() {return height;}
     public String getMerkleRoot() {return merkleroot;}
@@ -53,14 +61,13 @@ public class Block {
         sign(WalletGenerator.restorePrivateKey(validatorPrivKey));
     }
 
-    private String calculateMerkleRoot(){
-        return hash(transactions.toString());
-
+    public String calculateMerkleRoot() {
+        return calculateMerkleRoot(this.transactions);
     }
 
-    private String calculateBlockHash(){
+    public String calculateBlockHash(){
         try {
-            String data = height + previousHash + merkleroot + timeStamp;
+            String data = height + previousHash + merkleroot;
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(data.getBytes(StandardCharsets.UTF_8));
 
@@ -134,6 +141,74 @@ public class Block {
         }
     }
 
+    public boolean validateBlock(String expectedPrevHash) throws Exception {
     
+        boolean merkleValid = this.getMerkleRoot().equals(this.calculateMerkleRoot());
+        boolean hashValid = this.getHash().equals(this.calculateBlockHash());
+        boolean signatureValid = this.signatureValid();
+        boolean previousHashValid = this.getPreviousHash().equals(expectedPrevHash);
+    
+        if (merkleValid && hashValid && signatureValid && previousHashValid) {
+            return true;
+        } else {
+            System.err.println("❌ Block failed validation:");
+            if (!merkleValid) System.err.println(" - Merkle root mismatch");
+            if (!hashValid) System.err.println(" - Hash mismatch");
+            if (!signatureValid) System.err.println(" - Invalid signature");
+            if (!previousHashValid) {
+                System.err.println(" - Invalid Previous Hash");
+                System.err.println("   ➤ Expected: " + expectedPrevHash);
+                System.err.println("   ➤ Found:    " + this.getPreviousHash());
+            }
+            return false;
+        }
+    }
 
+    public static String calculateMerkleRoot(List<String> txHashes) {
+        if (txHashes == null || txHashes.isEmpty()) return "";
+
+        List<String> currentLevel = new ArrayList<>(txHashes);
+
+        while (currentLevel.size() > 1) {
+            List<String> nextLevel = new ArrayList<>();
+
+            for (int i = 0; i < currentLevel.size(); i += 2) {
+                String left = currentLevel.get(i);
+                String right = (i + 1 < currentLevel.size()) ? currentLevel.get(i + 1) : left;
+                nextLevel.add(sha256(left + right));
+            }
+
+            currentLevel = nextLevel;
+        }
+
+        return currentLevel.get(0);
+    }
+
+    private static String sha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                hexString.append(String.format("%02x", b));
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("SHA-256 calculation failed", e);
+        }
+    }
+
+    public boolean verifyMerkleRoot() {
+        String recalculatedRoot = calculateMerkleRoot();
+        return this.merkleroot.equals(recalculatedRoot);
+    }
+
+    public void setFullTransactions(List<TX> fullTransactions) {
+        this.fullTransactions = fullTransactions;
+    }
+    
+    public List<TX> getFullTransactions() {
+        return fullTransactions;
+    }
+    
 }

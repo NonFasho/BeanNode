@@ -11,14 +11,17 @@ public class GenesisTX extends TX{
     private String to;
     private double amount;
     private String txhash;
-    @JsonIgnore
     private String signature;
+    private long timeStamp = 0L; // 🔒 Hardcoded for deterministic hash
+    private int nonce = 0;
 
     public String getFrom() {return from;}
     public String getTo() {return to;}
     public double getAmount() {return amount;}
     public String getTxHash() {return txhash;}
     public String getSignature() {return signature;}
+    public long getTimeStamp() { return timeStamp; }
+    public int getNonce() { return nonce; }
 
     public GenesisTX() {
 

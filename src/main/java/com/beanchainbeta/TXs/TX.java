@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.security.PrivateKey;
 
 import com.beanchainbeta.Validation.TransactionVerifier;
+import com.beanchainbeta.services.RejectedService;
 import com.beanchainbeta.services.WalletService;
 import com.beanchainbeta.tools.SHA256TransactionSigner;
 import com.beanchainbeta.tools.WalletGenerator;
@@ -20,6 +21,7 @@ public class TX {
     private String txHash;
     private String signature;
     private long gasFee;
+    private String status = "pending";
 
     public TX(){
 
@@ -47,6 +49,7 @@ public class TX {
     public String getTxHash() {return txHash;}
     public String getSignature() {return signature;}
     public long getGasFee() {return gasFee;}
+    public String getStatus() {return status;}
 
     public void setFrom(String from) {this.from = from;}
     public void setNonce(int nonce) {this.nonce = nonce;}
@@ -57,10 +60,11 @@ public class TX {
     public void setTxHash(String txHash) {this.txHash = txHash;}
     public void setSignature(String signature) {this.signature = signature;}
     public void setGasFee(long gasFee) {this.gasFee = gasFee;}
+    public void setStatus(String status) {this.status = status;}
 
     private String generateHash(){
         try {
-            String data = from + to + String.format("%.8f", amount) + timeStamp + nonce;
+            String data = from + to + String.format("%.8f", amount) + timeStamp + nonce + gasFee;
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(data.getBytes(StandardCharsets.UTF_8));
 
@@ -90,9 +94,16 @@ public class TX {
     public static TX fromJSON(String json) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(json, TX.class);
+            TX tx = objectMapper.readValue(json, TX.class);
+    
+            // 🔧 Enforce 8-decimal precision on amount
+            if (tx != null) {
+                tx.amount = Math.round(tx.amount * 1e8) / 1e8;
+            }
+    
+            return tx;
         } catch (Exception e) {
-            System.out.println(e);
+            System.out.println("❌ Failed to parse TX JSON: " + e.getMessage());
             return null;
         }
     }
@@ -119,6 +130,10 @@ public class TX {
         //debug
         //this.debugHashValues();
         //end-debug
+        if (this.signature != null && this.signature.equals("GENESIS-SIGNATURE")) {
+            //System.out.println("🪙 System TX accepted without signature verification: " + txHash);
+            return true;
+        }
 
         boolean hasAddy = (this.from !=null);
         //System.out.println("HasAddy" + (hasAddy));
@@ -141,21 +156,49 @@ public class TX {
             senderHasEnough = WalletService.hasCorrectAmount(from, amount, gasFee);
             //System.out.println("sender has enough " + senderHasEnough);
             if(addyMatch && validOwner && senderHasEnough) {
-                WalletService.incrementNonce(this.from);
+                //WalletService.incrementNonce(this.from);
                 return true;
             } else {
                 System.out.println("** TX FAILED: " +txHash + " VERIFICATION FAILURE **");
+                this.setStatus("rejected");
+                RejectedService.saveRejectedTransaction(this);
                 return false;
             }
 
         } else {
-            System.out.println("** TX FAILED: " + txHash + " NO ADDY OR SIGNATURE **");
+            System.out.println("** TX FAILED: " + txHash + " INFO MISMATCH **");
+            this.setStatus("rejected");
+            RejectedService.saveRejectedTransaction(this);
             return false;
 
         }
+    }
 
-        
-
+    public boolean lightSyncVerify() throws Exception {
+        if (this.signature != null && this.signature.equals("GENESIS-SIGNATURE")) {
+            //System.out.println("🪙 System TX accepted without signature verification: " + txHash);
+            return true;
+        }
+        boolean hasAddy = (this.from != null);
+        boolean hasSignature = (this.signature != null);
+        boolean correctHash = (this.txHash.equals(this.generateHash()));
+        //boolean correctNonce = (this.nonce == WalletService.getNonce(from));
+    
+        if (hasAddy && hasSignature && correctHash) {
+            boolean addyMatch = TransactionVerifier.walletMatch(publicKeyHex, from);
+            boolean validOwner = TransactionVerifier.verifySHA256Transaction(publicKeyHex, hexToBytes(txHash), signature);
+            boolean senderHasEnough = WalletService.hasCorrectAmount(from, amount, gasFee);
+    
+            if (addyMatch && validOwner && senderHasEnough) {
+                return true; 
+            } else {
+                System.err.println("❌ lightSyncVerify failed: " + txHash);
+                return false;
+            }
+        } else {
+            System.err.println("❌ lightSyncVerify failed basic fields: " + txHash);
+            return false;
+        }
     }
 
     public void debugHashValues() {

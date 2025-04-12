@@ -4,7 +4,9 @@ import java.io.IOException;
 import org.iq80.leveldb.DB;
 import org.springframework.stereotype.Service;
 import com.beanchainbeta.TXs.TX;
+import com.beanchainbeta.Validation.TransactionVerifier;
 import com.beanchainbeta.controllers.DBManager;
+import com.beanchainbeta.nodePortal.portal;
 import com.beanchainbeta.tools.StateWallet;
 import com.beanchainbeta.tools.beantoshinomics;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import org.iq80.leveldb.DBIterator;
@@ -39,8 +42,22 @@ public class WalletService {
         early.setBeantoshi(beantoshinomics.toBeantoshi(earleyWaletAllocation));
         InBeanTx(earlyWallet, earleyWaletAllocation);
 
-        System.out.println(getData(earlyWallet));
-        System.out.println(getData(teamWallet));
+        String faucetWallet = "BEANX:0xFAUCETWALLET";
+        double faucetWaletAllocation = 5000000;
+        StateWallet faucet = new StateWallet();
+        faucet.setAddy(faucetWallet);
+        faucet.setBeantoshi(beantoshinomics.toBeantoshi(faucetWaletAllocation));
+        InBeanTx(faucetWallet, faucetWaletAllocation);
+
+        String nodeReward = "BEANX:0xNODEREWARD";
+        double nodeRewardAllocation = 30000000;
+        StateWallet node = new StateWallet();
+        faucet.setAddy(nodeReward);
+        faucet.setBeantoshi(beantoshinomics.toBeantoshi(nodeRewardAllocation));
+        InBeanTx(nodeReward, nodeRewardAllocation);
+
+        //System.out.println(getData(earlyWallet));
+        //System.out.println(getData(teamWallet));
     }
 
     public static void genTxProcess(TX tx) throws IOException{
@@ -60,7 +77,7 @@ public class WalletService {
     private static void outBeanTx(String from, double amount, int nonce, long gasFee) throws IOException{
         ObjectMapper mapper = new ObjectMapper();
         String fromKey = from;
-        System.out.println("Gas from frontend: " + gasFee);
+        //System.out.println("Gas from frontend: " + gasFee);
 
         if (!beantoshinomics.isValidAmount(String.valueOf(amount))) {
             System.out.println("Invalid amount in outBeanTx: " + amount);
@@ -88,6 +105,8 @@ public class WalletService {
 
     // update reciever wallet state 
     private static void InBeanTx(String to, double amount) throws IOException {
+        System.out.println("[IN_BEAN_TX] To Address: " + to + " | Length: " + to.length());
+
         ObjectMapper mapper = new ObjectMapper();
         String toKey = to;
 
@@ -114,11 +133,12 @@ public class WalletService {
         } else {
             System.out.println("No Wallet Found for: " + to + ", creating new one.");
             walletNode = mapper.createObjectNode();
-            if(getBeanBalance("BEANX:0xEARLYWALLET") > 100){
-                TX tx = new TX("BEANX:0xEARLYWALLET","SYSTEM", to, 100 ,getNonce("BEANX:0xEARLYWALLET"), 0);
-                tx.setSignature("GENESIS-SIGNATURE");
-                MempoolService.addTransaction(tx.getTxHash(), tx.createJSON());
-            }
+            //staging to remove early wallet logic for reward node
+            // if(getBeanBalance("BEANX:0xEARLYWALLET") > 100){
+            //     TX tx = new TX("BEANX:0xEARLYWALLET","SYSTEM", to, 100 ,getNonce("BEANX:0xEARLYWALLET"), 0);
+            //     tx.setSignature("GENESIS-SIGNATURE");
+            //     MempoolService.addTransaction(tx.getTxHash(), tx.createJSON());
+            // }
             walletNode.put("beantoshi", beantoshi);
             walletNode.put("nonce", 0);
         }
@@ -167,35 +187,9 @@ public class WalletService {
     
         try {
             if (json == null) {
-                System.err.println("⚠️ No data found for address: " + addy + ". Creating new wallet...");
-            
-                ObjectNode newWallet = objectMapper.createObjectNode();
-                newWallet.put("beantoshi", 0);
-                newWallet.put("nonce", 0);
-            
-                // ⛔ Prevent recursion for the early wallet itself
-                if (!addy.equals("BEANX:0xEARLYWALLET")) {
-                    double earlyBalance = getBeanBalance("BEANX:0xEARLYWALLET");
-                    if (earlyBalance > 100) {
-                        TX tx = new TX(
-                            "BEANX:0xEARLYWALLET",
-                            "SYSTEM",
-                            addy,
-                            100,
-                            getNonce("BEANX:0xEARLYWALLET"),
-                            0
-                        );
-                        tx.setSignature("GENESIS-SIGNATURE");
-                        MempoolService.addTransaction(tx.getTxHash(), tx.createJSON());
-                        System.out.println("🌱 Early wallet airdrop initialized for: " + addy);
-                    }
-                }
-            
-                String newWalletJson = objectMapper.writeValueAsString(newWallet);
-                db.put(addy.getBytes(StandardCharsets.UTF_8), newWalletJson.getBytes(StandardCharsets.UTF_8));
+                System.err.println("⚠️ No data found for address: " + addy);
                 return 0.0;
             }
-            
     
             JsonNode rootNode = objectMapper.readTree(json);
             long beantoshiBalance = rootNode.get("beantoshi").asLong();
@@ -218,13 +212,20 @@ public class WalletService {
     }
 
     public static void transfer(TX tx) throws IOException {
+        //System.out.println("[TRANSFER] To Address: " + tx.getTo() + " | Length: " + tx.getTo().length());
+
         outBeanTx(tx.getFrom(), tx.getAmount(), tx.getNonce(), tx.getGasFee());
+        
+        //System.out.println("TX TO: " + tx.getTo());
         InBeanTx(tx.getTo(), tx.getAmount());
 
         if (tx.getGasFee() > 0) {
             InBeanTx("BEANX:0xGASPOOL", beantoshinomics.toBean(tx.getGasFee()));
-            System.out.println("Credited " + tx.getGasFee() + " beantoshi to GASPOOL from " + tx.getFrom());
+            //System.out.println("Credited " + tx.getGasFee() + " beantoshi to GASPOOL from " + tx.getFrom());
         }
+
+        System.out.println("Transferred " + tx.getAmount() + " BEAN from " + tx.getFrom() + " to " + tx.getTo());
+
         
     }
 
@@ -236,8 +237,8 @@ public class WalletService {
         ObjectNode walletNode;
     
         if (toJsonWallet != null) {
-            System.out.println("Existing wallet data found for: " + addy);
-            System.out.println("Raw JSON from DB: " + new String(toJsonWallet, StandardCharsets.UTF_8));
+            //System.out.println("Existing wallet data found for: " + addy);
+            //System.out.println("Raw JSON from DB: " + new String(toJsonWallet, StandardCharsets.UTF_8));
     
             try {
                 walletNode = (ObjectNode) mapper.readTree(new String(toJsonWallet, StandardCharsets.UTF_8));
@@ -270,7 +271,7 @@ public class WalletService {
                 String updatedJson = mapper.writeValueAsString(walletNode);
                 db.put(addy.getBytes(StandardCharsets.UTF_8), updatedJson.getBytes(StandardCharsets.UTF_8));
     
-                System.out.println("Nonce updated to: " + newNonce);
+                //System.out.println("Nonce updated to: " + newNonce);
     
             } catch (Exception e) {
                 e.printStackTrace();
@@ -295,7 +296,7 @@ public class WalletService {
 
                 if (key.startsWith("BEANX:0x")) {
                     String json = asString(entry.getValue());
-                    System.out.println(key + " " + json);
+                    //System.out.println(key + " " + json);
                 }
             }
         } catch (Exception e) {
@@ -304,6 +305,48 @@ public class WalletService {
 
         return txs;
     }
+
+    public static boolean updateWalletLabel(String address, String label, String signature, String publicKeyHex) throws Exception {
+        // Step 1: Validate label prefix
+        if (!label.startsWith("WUN:")) {
+            throw new IllegalArgumentException("Only WUN: labels allowed");
+        }
+    
+        // Step 2: Construct the verification message
+        String message = "SET_LABEL:" + address + ":" + label;
+    
+        // Step 3: Hash the message
+        byte[] messageHash = MessageDigest.getInstance("SHA-256").digest(message.getBytes(StandardCharsets.UTF_8));
+    
+        // Step 4: Verify signature using custom logic
+        boolean isValid = TransactionVerifier.verifySHA256Transaction(publicKeyHex, messageHash, signature);
+        if (!isValid) {
+            throw new SecurityException("Invalid signature");
+        }
+    
+        // Step 5: Make sure public key maps to the address
+        boolean addressMatches = TransactionVerifier.walletMatch(publicKeyHex, address);
+        if (!addressMatches) {
+            throw new SecurityException("Public key does not match address");
+        }
+    
+        // Step 6: Update LevelDB entry
+        ObjectMapper mapper = new ObjectMapper();
+        byte[] walletBytes = db.get(address.getBytes(StandardCharsets.UTF_8));
+        ObjectNode walletNode = mapper.createObjectNode();
+    
+        if (walletBytes != null) {
+            walletNode = (ObjectNode) mapper.readTree(new String(walletBytes, StandardCharsets.UTF_8));
+        }
+    
+        walletNode.put("label", label);
+    
+        db.put(address.getBytes(StandardCharsets.UTF_8), mapper.writeValueAsBytes(walletNode));
+        System.out.println("Label set for " + address + ": " + label);
+        return true;
+    }
+    
+    
 
 }
 

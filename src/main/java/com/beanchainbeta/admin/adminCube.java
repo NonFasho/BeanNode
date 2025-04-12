@@ -2,7 +2,8 @@ package com.beanchainbeta.admin;
 
 import java.security.PrivateKey;
 
-import com.beanchainbeta.tools.Node;
+import com.beanchainbeta.config.ConfigLoader;
+import com.beanchainbeta.network.Node;
 import com.beanchainbeta.tools.WalletGenerator;
 
 public class adminCube {
@@ -13,27 +14,41 @@ public class adminCube {
     public String nodeIp;
     public boolean signedIn = false;
     
-    public adminCube(String privateKeyHex, String publicIp) throws Exception{
-        this.privateKeyHex = privateKeyHex;
-        this.privateKey = WalletGenerator.restorePrivateKey(privateKeyHex);
-        publicKeyHex = WalletGenerator.generatePublicKey(privateKey);
-        address = WalletGenerator.generateAddress(publicKeyHex);
-        nodeIp = publicIp;
-        Node node = new Node(nodeIp);
+    public adminCube(String privateKeyHex, String publicIp) throws Exception {
+    this.privateKeyHex = privateKeyHex;
+    this.privateKey = WalletGenerator.restorePrivateKey(privateKeyHex);
+    publicKeyHex = WalletGenerator.generatePublicKey(privateKey);
+    address = WalletGenerator.generateAddress(publicKeyHex);
+    nodeIp = publicIp;
 
-        Thread nodeThread = new Thread(() -> {
-               node.start();
-        }, "NodeThread");
-        nodeThread.setDaemon(false);
-        nodeThread.start();
+    Node.initialize(nodeIp); // set static instance
+    Node node = Node.getInstance(); // safe fetch
 
-        //TEST TEST TEST//
-        System.out.println("Private Key: " + privateKeyHex);
-        System.out.println("Public Key: " + publicKeyHex);
-        System.out.println("Node IP: " + nodeIp);
-        //END TEST END TEST END TEST//
+    Thread nodeThread = new Thread(() -> {
+        node.start();
 
-    }
+        // 🌱 If NOT a bootstrap node, connect to bootstrap peer
+        if (!ConfigLoader.isBootstrapNode) {
+            try {
+                System.out.println("Connecting to bootstrap node at " + ConfigLoader.bootstrapIp);
+                node.connectToPeer(ConfigLoader.bootstrapIp);
+            } catch (Exception e) {
+                System.err.println("Failed to connect to bootstrap node: " + e.getMessage());
+            }
+        } else {
+            System.out.println("Bootstrap node ready — listening for peers...");
+        }
+
+    }, "NodeThread");
+
+    nodeThread.setDaemon(false);
+    nodeThread.start();
+
+    // TEST INFO
+    //System.out.println("Private Key: " + privateKeyHex);
+    //System.out.println("Public Key: " + publicKeyHex);
+    //System.out.println("Node IP: " + nodeIp);
+}
 
     public static void main(String[] args) throws Exception {
         

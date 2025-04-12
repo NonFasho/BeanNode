@@ -10,6 +10,8 @@ package com.beanchainbeta.nodePortal;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import com.beanchainbeta.admin.adminCube;
 import com.beanchainbeta.admin.autoStart;
+import com.beanchainbeta.admin.autoStartPrivate;
+import com.beanchainbeta.config.ConfigLoader;
 //import com.beanchainbeta.admin.prompt;
 import com.beanchainbeta.services.blockchainDB;
 
@@ -18,29 +20,23 @@ public class portal {
     public static final String currentVersion = "(BETA)";
     public static adminCube admin;
     public static blockchainDB beanchainTest = new blockchainDB();
+    public static volatile boolean isSyncing = true;
+    public static final long BOOT_TIME = System.currentTimeMillis();
+
+
+    public static void setIsSyncing(boolean bool) {isSyncing = bool;}
+
 
     public static void main(String[] args) throws Exception {
-        autoStart.nodeStart();
+        ConfigLoader.loadConfig();
+
+        if(ConfigLoader.isBootstrapNode) {
+            autoStart.nodeStart();
+            setIsSyncing(false);
+        } else {
+            autoStartPrivate.nodeStart();
+        }
 
     }
-
-    // public static void resetDatabases() {
-    // deleteFolder("BeanChainDBTest");
-    // deleteFolder("mempool_db");
-    // deleteFolder("stateDB");
-    // System.out.println("✅ All node databases reset.");
-    // }
-
-    // private static void deleteFolder(String folderName) {
-    //     Path path = Paths.get(folderName);
-    //     try {
-    //         Files.walk(path)
-    //             .sorted(Comparator.reverseOrder())
-    //             .map(Path::toFile)
-    //             .forEach(File::delete);
-    //     } catch (IOException e) {
-    //         System.err.println("Failed to delete folder " + folderName + ": " + e.getMessage());
-    //     }
-    // }
     
 }

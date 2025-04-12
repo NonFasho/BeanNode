@@ -20,7 +20,7 @@ public class TimerFunc {
                 BlockBuilder.blockMaker(portal.admin.privateKeyHex); 
 
                 if(count % 10 == 0) {
-                    System.out.println(prompt.logo);
+                    System.out.println("\u001B[32m" + prompt.logo + "\u001B[0m");
                 }
             } catch (Exception e) {
                 System.err.println("Error in blockMaker: " + e.getMessage());

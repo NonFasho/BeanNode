@@ -128,33 +128,33 @@ public class SHA256TransactionSigner {
         return data;
     }
 
-    public static void main(String[] args) {
-        try {
-            // Generate a private key
-            String privateKeyHex = WalletGenerator.generatePrivateKey();
-            PrivateKey privateKey = WalletGenerator.restorePrivateKey(privateKeyHex);
-            String publicKeyHex = WalletGenerator.generatePublicKey(privateKey);
-            String address = WalletGenerator.generateAddress(publicKeyHex);
+    // public static void main(String[] args) {
+    //     try {
+    //         // Generate a private key
+    //         String privateKeyHex = WalletGenerator.generatePrivateKey();
+    //         PrivateKey privateKey = WalletGenerator.restorePrivateKey(privateKeyHex);
+    //         String publicKeyHex = WalletGenerator.generatePublicKey(privateKey);
+    //         String address = WalletGenerator.generateAddress(publicKeyHex);
 
-            System.out.println("Generated Address: " + address);
-            System.out.println("Public Key: " + publicKeyHex);
+    //         System.out.println("Generated Address: " + address);
+    //         System.out.println("Public Key: " + publicKeyHex);
 
-            // Example SHA-256 transaction hash (32 bytes)
-            String transactionHashHex = "2c26b46b68ffc68ff99b453c1d30413413422b25b52467f4b4b1e8b9a3d6f605";
-            byte[] transactionHash = hexToBytes(transactionHashHex);
+    //         // Example SHA-256 transaction hash (32 bytes)
+    //         String transactionHashHex = "2c26b46b68ffc68ff99b453c1d30413413422b25b52467f4b4b1e8b9a3d6f605";
+    //         byte[] transactionHash = hexToBytes(transactionHashHex);
 
-            // Sign the transaction hash
-            String signature = signSHA256Transaction(privateKey, transactionHash);
-            System.out.println("Signed Transaction: " + signature);
+    //         // Sign the transaction hash
+    //         String signature = signSHA256Transaction(privateKey, transactionHash);
+    //         System.out.println("Signed Transaction: " + signature);
 
-            // Verify the signature using address
-            boolean isValid = TransactionVerifier.verifySHA256Transaction(address, transactionHash, signature);
-            System.out.println("Signature valid: " + isValid);
+    //         // Verify the signature using address
+    //         boolean isValid = TransactionVerifier.verifySHA256Transaction(address, transactionHash, signature);
+    //         System.out.println("Signature valid: " + isValid);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
+    // }
 }
 
 

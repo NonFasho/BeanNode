@@ -12,11 +12,16 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 
 import com.beanchainbeta.TXs.TX;
+import com.beanchainbeta.network.Node;
 import com.beanchainbeta.services.MempoolService;
+import com.beanchainbeta.services.RejectedService;
 import com.beanchainbeta.services.WalletService;
 import com.beanchainbeta.services.blockchainDB;
 import com.beanchainbeta.tools.beantoshinomics;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -37,8 +42,10 @@ public class DBController {
         String txHash = request.get("txHash");
         String transactionJson = request.get("transactionJson");
 
-        System.out.println("txHash: " + txHash);
+        System.out.println("IN:TX: " + txHash);
         //System.out.println("transactionJson (string): " + transactionJson);
+        System.out.println("[INCOMING TX JSON] " + transactionJson);
+
 
         if (txHash == null || transactionJson == null) {
             return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Missing txHash or transactionJson\"}");
@@ -58,6 +65,7 @@ public class DBController {
         }
 
         if (mempoolService.addTransaction(txHash, transactionJson)) {
+            Node.broadcastTransactionStatic(tx);
             return ResponseEntity.ok("{\"status\": \"success\", \"txHash\": \"" + txHash + "\"}");
         } else {
             return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Transaction rejected or already exists\"}");
@@ -93,6 +101,31 @@ public class DBController {
         }
     }
 
+    @PostMapping("/label")
+    public ResponseEntity<String> updateLabel(@RequestBody Map<String, String> payload) {
+        String address = payload.get("address");
+        String label = payload.get("label");
+        String signature = payload.get("signature");
+        String publicKeyHex = payload.get("publicKeyHex");
+
+        try {
+            boolean success = WalletService.updateWalletLabel(address, label, signature, publicKeyHex);
+            if (success) {
+                return ResponseEntity.ok("Label updated successfully.");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid label update request.");
+            }
+        } catch (SecurityException se) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Signature or address verification failed.");
+        } catch (IllegalArgumentException ie) {
+            return ResponseEntity.badRequest().body("Invalid label format.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update label.");
+        }
+    }
+
+
 
     @GetMapping("/mempool")
     public ResponseEntity<?> getMempool() {
@@ -102,23 +135,17 @@ public class DBController {
     @GetMapping("/rejected/{address}")
     public ResponseEntity<?> getRejected(@PathVariable String address) {
         try {
-            ConcurrentHashMap<String, String> rejected = MempoolService.getRejectedTransactions(address);
-            
-            //** TEST TEST TEST */
-            //System.out.println("📥 Rejected TXs for " + address + ": " + rejected.size());
-            //rejected.forEach((hash, json) -> System.out.println(" - " + hash + ": " + json));
-            //**TEST END TEST END */
+            Map<String, String> rejected = RejectedService.getRejectedTxsForAddress(address);
 
             return ResponseEntity
                 .ok()
                 .contentType(APPLICATION_JSON)
                 .body(rejected);
         } catch (Exception e) {
-            System.err.println("ERROR FETCHING REJECTED" + e.getMessage());
+            System.err.println("ERROR FETCHING REJECTED TXs: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                             .body("Failed to fetch rejected transactions.");
+                                .body("Failed to fetch rejected transactions.");
         }
-        
     }
 
     @GetMapping("/nonce/{address}")
@@ -135,13 +162,19 @@ public class DBController {
     @GetMapping("/txs/sent/{address}")
     public ResponseEntity<List<TX>> getSentTxs(@PathVariable String address) {
         List<TX> sentTxs = blockchainDB.getWalletCompleteTXs(address);
-        return ResponseEntity.ok(sentTxs);
+        List<TX> filtered = sentTxs.stream()
+            .filter(tx -> "complete".equals(tx.getStatus()))
+            .toList();
+        return ResponseEntity.ok(filtered);
     }
 
-    @GetMapping("txs/received/{address}")
-    public ResponseEntity<List<TX>> getRecievedTxs(@PathVariable String address) {
+    @GetMapping("/txs/received/{address}")
+    public ResponseEntity<List<TX>> getReceivedTxs(@PathVariable String address) {
         List<TX> receivedTxs = blockchainDB.getWalletInTXs(address);
-        return ResponseEntity.ok(receivedTxs);
+        List<TX> filtered = receivedTxs.stream()
+            .filter(tx -> "complete".equals(tx.getStatus()))
+            .toList();
+        return ResponseEntity.ok(filtered);
     }
 
     @GetMapping("/mempool/pending/{address}")
@@ -149,6 +182,58 @@ public class DBController {
         List<TX> pending = MempoolService.getPending(address);
         return ResponseEntity.ok(pending);
     }
+
+    @GetMapping("/label/{address}")
+    public ResponseEntity<String> getLabel(@PathVariable String address) {
+        try {
+            String data = WalletService.getData(address);
+            if (data == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Wallet not found");
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(data);
+            JsonNode labelNode = root.get("label");
+
+            if (labelNode != null) {
+                return ResponseEntity.ok(labelNode.asText());
+            } else {
+                return ResponseEntity.ok(""); // No label set
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving label");
+        }
+    }
+
+    @GetMapping("/txs/all/{address}")
+    public ResponseEntity<Map<String, List<TX>>> getAllUserTxs(@PathVariable String address) {
+        try {
+            List<TX> pending = MempoolService.getPending(address);
+            Map<String, String> rejectedRaw = RejectedService.getRejectedTxsForAddress(address);
+            List<TX> rejected = rejectedRaw.values().stream()
+                .map(TX::fromJSON)
+                .filter(tx -> tx != null)
+                .toList();
+
+            List<TX> confirmed = blockchainDB.getWalletCompleteTXs(address).stream()
+                .filter(tx -> "complete".equals(tx.getStatus()))
+                .toList();
+
+            Map<String, List<TX>> result = Map.of(
+                "pending", pending,
+                "complete", confirmed,
+                "rejected", rejected
+            );
+
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Collections.emptyMap());
+        }
+    }
+
 
     
 }

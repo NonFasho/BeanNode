@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import static org.iq80.leveldb.impl.Iq80DBFactory.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -37,6 +38,7 @@ public class blockchainDB {
     private void storeBlock(Block block) {
         try {
             db.put(bytes("block-0"), bytes(block.createJSON()));
+            //System.out.println("Genesis block persisted to DB.");
         } catch (Exception e) {
             System.err.println(e);
         }
@@ -76,6 +78,24 @@ public class blockchainDB {
         return asString(db.get(bytes(key)));
     }
 
+    public static Block getBlockByHeight(int height) {
+        try {
+            String key = "block-" + height;
+            byte[] data = db.get(bytes(key));
+            if (data != null) {
+                String json = asString(data);
+                return Block.fromJSON(json);
+            } else {
+                System.err.println("⚠️ No block found at height: " + height);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Failed to load block at height " + height);
+            e.printStackTrace();
+        }
+        return null;
+    }
+    
+
     
 
     public void storeTX(TX TX) {
@@ -95,10 +115,10 @@ public class blockchainDB {
     }
 
     private void loadGenBlock() throws Exception{
-        GenesisTX genTX1 = new GenesisTX("BEANX:0xFAUCET", 5000000); //need funds released programatically 
-        GenesisTX genTX2 = new GenesisTX("BEANX:0xEARLYWALLET", 5000000); //need funds released programatically 
-        GenesisTX genTX3 = new GenesisTX("BEANX:0xSTAKEREWARDS", 15000000); //need funds released programatically
-        GenesisTX genTX4 = new GenesisTX("BEANX:0xNODEREWARDS", 30000000); //need funds released programatically 
+        GenesisTX genTX1 = new GenesisTX("BEANX:0xFAUCETWALLET", 5000000); //handled by RN
+        GenesisTX genTX2 = new GenesisTX("BEANX:0xEARLYWALLET", 5000000);  //handled by RN
+        GenesisTX genTX3 = new GenesisTX("BEANX:0xSTAKEREWARD", 15000000); //need funds released programatically
+        GenesisTX genTX4 = new GenesisTX("BEANX:0xNODEREWARD", 30000000); //handled by RN 
         GenesisTX genTX5 = new GenesisTX("BEANX:0x1c8496175b3f4802e395db5fab4dd66e09c431b2", 2500000); // needs to be sent to wallet in chunks over time to avoid rug pull
         GenesisTX genTX6 = new GenesisTX("BEANX:0xLIQUIDITY", 12500000); // held by the team promised to be used for liquidity or aborted and transfered to rewards based on future vote
 
@@ -107,10 +127,12 @@ public class blockchainDB {
         List<String> genesisTransactions = Arrays.asList(
             genTX1.getTxHash(), genTX2.getTxHash(), genTX3.getTxHash(), genTX4.getTxHash(), genTX5.getTxHash(), genTX6.getTxHash()
         );
+        Collections.sort(genesisTransactions);
 
-        String genPrivateKey = WalletGenerator.generatePrivateKey();
+        String genPrivateKey = "d9c3a43797fded25aa2e38a2e59b70c35a6f62c5378a2078b8a3f84bd0860a3c"; // HARD CODED GEN KEY! - TODO: BLOCK THIS KEY FROM USE IN NETWORK OTHER THAN GENESIS
 
         Block genesisBlock = new Block(0, "00000000000000000000", genesisTransactions, genPrivateKey);
+        //System.out.println("📦 Bootstrap Genesis Hash: " + genesisBlock.getHash());
 
         
 
@@ -138,8 +160,8 @@ public class blockchainDB {
 
             if (key.startsWith("block-")) {
                 String json = asString(entry.getValue());
-                System.out.print(key);
-                blocks.add(Block.fromJSON(json)); // You’ll need this method
+                //System.out.print(key);
+                blocks.add(Block.fromJSON(json)); 
             }
         }
     } catch (Exception e) {
@@ -236,7 +258,7 @@ public class blockchainDB {
     }
 
     // Method to fetch the latest block from LevelDB
-    private static Block getLatestBlock() {
+    public static Block getLatestBlock() {
         Block latestBlock = null;
         int highestHeight = -1;
 
@@ -305,6 +327,27 @@ public class blockchainDB {
     }
 
     return maxHeight;
+    }
+
+    public static List<String> getTransactionsByHashes(List<String> hashes) {
+        List<String> result = new ArrayList<>();
+    
+        for (String hash : hashes) {
+            try {
+                String key = "tran-" + hash;
+                byte[] data = db.get(bytes(key));
+                if (data != null) {
+                    result.add(asString(data)); // JSON string from DB
+                } else {
+                    System.err.println("⚠️ TX not found in DB for hash: " + hash);
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Error fetching TX from DB: " + hash);
+                e.printStackTrace();
+            }
+        }
+    
+        return result;
     }
 }
 
