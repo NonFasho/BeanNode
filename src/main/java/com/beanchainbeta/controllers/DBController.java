@@ -1,5 +1,6 @@
 package com.beanchainbeta.controllers;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 
-@CrossOrigin(origins = "*")
+//@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api")
 public class DBController {
@@ -42,9 +43,9 @@ public class DBController {
         String txHash = request.get("txHash");
         String transactionJson = request.get("transactionJson");
 
-        System.out.println("IN:TX: " + txHash);
+        //System.out.println("IN:TX: " + txHash);
         //System.out.println("transactionJson (string): " + transactionJson);
-        System.out.println("[INCOMING TX JSON] " + transactionJson);
+        //System.out.println("[INCOMING TX JSON] " + transactionJson);
 
 
         if (txHash == null || transactionJson == null) {
@@ -125,7 +126,66 @@ public class DBController {
         }
     }
 
+    //explorer posts
 
+    @PostMapping("/block")
+    public ResponseEntity<?> getBlockByHeight(@RequestBody Map<String, Integer> request) {
+        Integer height = request.get("height");
+        if (height == null) {
+            return ResponseEntity.badRequest().body("Missing 'height'");
+        }
+
+        try {
+            String key = "block-" + height;
+            byte[] data = db.getRaw(key);
+            if (data == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Block not found.");
+            }
+
+            String json = new String(data, StandardCharsets.UTF_8);
+            return ResponseEntity.ok(json);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching block");
+        }
+    }
+
+    @PostMapping("/transaction")
+    public ResponseEntity<?> getTransactionByHash(@RequestBody Map<String, String> request) {
+        String txHash = request.get("txHash");
+        if (txHash == null || txHash.isEmpty()) {
+            return ResponseEntity.badRequest().body("Missing 'txHash'");
+        }
+
+        try {
+            String key = "tran-" + txHash;
+            byte[] data = db.getRaw(key);
+            if (data == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transaction not found.");
+            }
+
+            String json = new String(data, StandardCharsets.UTF_8);
+            return ResponseEntity.ok(json);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching transaction");
+        }
+    }
+
+    @PostMapping("/chain-info")
+    public ResponseEntity<?> getChainInfo() {
+        try {
+            int height = blockchainDB.getHeight();
+            return ResponseEntity.ok(Map.of("height", height));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching height");
+        }
+    }
+
+
+
+
+//GET
 
     @GetMapping("/mempool")
     public ResponseEntity<?> getMempool() {

@@ -16,47 +16,5 @@ public class prompt {
         "         \\/        \\/         \\/         \\/        \\/      \\/         \\/            \\/\n" +
         "                            B E A N C H A I N::" + portal.currentVersion;
 
-//     public static void nodeStart() throws Exception {
-//         Scanner scanner = new Scanner(System.in);
-//         System.out.println("Welcome to BEANCHAIN::" + portal.currentVersion);
-//         System.out.print("PRIVATE KEY:");
-//         String adminKey = scanner.nextLine();
-//         System.out.print("PUBLIC IP:");
-//         String ip = scanner.nextLine();
-
-//         try {
-//             adminCube admin = new adminCube(adminKey, ip);
-//             admin.signedIn = true;
-//             portal.admin = admin;
-//             signInSuccess();
-//         } catch (Exception e) {
-//             System.out.println("SIGN IN FAILED" + e.getMessage());
-//             scanner.close();
-//             nodeStart();
-//         }
-
-//         scanner.close();
-//     }
-
-//     private static void signInSuccess(){
-//         Thread springThread = new Thread(() -> {
-//                     SpringApplication.run(BeanChainApi.class);
-//                 }, "SpringThread");
-
-//         springThread.setDaemon(false);
-//         springThread.start();
-//         System.out.println("SIGN IN SUCCESS");
-
-//         try {
-//             Thread.sleep(4000);
-//         } catch (InterruptedException e) {
-//             e.printStackTrace();
-//         }
-
-//         System.out.print("\033[H\033[2J");  
-//         System.out.flush();
-//         System.out.println(logo); 
-//         TimerFunc.nodeFleccer();
-//     }
     
 }

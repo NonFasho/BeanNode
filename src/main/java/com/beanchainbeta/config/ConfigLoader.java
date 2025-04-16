@@ -10,6 +10,7 @@ public class ConfigLoader {
     public static int networkPort;
     public static boolean isBootstrapNode;
     public static String bootstrapIp;
+    public static boolean isPublicNode;
 
     public static void loadConfig() {
         Properties props = new Properties();
@@ -20,6 +21,7 @@ public class ConfigLoader {
             bindAddress = props.getProperty("bindAddress", "0.0.0.0");
             networkPort = Integer.parseInt(props.getProperty("networkPort", "6442"));
             isBootstrapNode = Boolean.parseBoolean(props.getProperty("isBootstrapNode", "false"));
+            isPublicNode = Boolean.parseBoolean(props.getProperty("isPublicNode", "false"));
             bootstrapIp = props.getProperty("bootstrapIp", "65.38.97.169");
 
 

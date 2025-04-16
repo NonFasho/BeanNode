@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;
@@ -148,6 +149,11 @@ public class MempoolService {
             return null;
         }
     }
+
+    public static Set<String> getAllTXHashes() {
+        return transactions.keySet();
+    }
+
 
 }
 

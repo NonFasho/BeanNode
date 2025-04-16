@@ -156,7 +156,7 @@ public class Node {
         }
     }
 
-    public List<String> getKnownPeers() {
+    public  List<String> getKnownPeers() {
         return knownAddresses;
     }
 
@@ -202,7 +202,7 @@ public class Node {
     return peers.values().stream()
         .filter(PeerInfo::getIsValidator)
         .collect(Collectors.toList());
-}
+    }
 
 }
 

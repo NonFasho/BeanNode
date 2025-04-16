@@ -4,12 +4,12 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.iq80.leveldb.DBIterator;
 import com.beanchainbeta.TXs.TX;
@@ -19,6 +19,7 @@ import com.beanchainbeta.network.Node;
 import com.beanchainbeta.network.PeerInfo;
 import com.beanchainbeta.nodePortal.portal;
 import com.beanchainbeta.services.MempoolService;
+import com.beanchainbeta.services.RejectedService;
 import com.beanchainbeta.services.WalletService;
 import com.beanchainbeta.services.blockchainDB;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -54,37 +55,55 @@ public class MessageRouter {
             case "block":
                 handleIncomingBlock(message, peer);
                 break;
+            case "mempool_summary":
+                handleMempoolSummary(message.get("payload"), peer);
+                break;
+            case "txRequestBatch":
+                handleTxRequestBatch(message.get("payload"), peer);
+                break;
+            case "txBatch":
+                handleTxBatch(message.get("payload"));
+                break;
             default:
                 System.out.println("Unknown message type: " + type);
         }
     }
 
     private void handleHandshake(JsonNode msg, Socket peer) {
-    try {
-        String peerAddress = msg.get("address").asText();
-        int peerHeight = msg.get("blockHeight").asInt();
-        boolean requestSync = msg.get("requestSync").asBoolean(); 
-        String syncMode = msg.has("syncMode") ? msg.get("syncMode").asText() : "FULL";
-        boolean isValidator = msg.get("isValidator").asBoolean();
+        try {
+            // Debug print to verify handshake format
+            //System.out.println("Raw handshake payload: " + msg.toPrettyString());
+    
+            String peerAddress = msg.has("address") ? msg.get("address").asText() : "UNKNOWN";
+            int peerHeight = msg.has("blockHeight") ? msg.get("blockHeight").asInt() : 0;
+            boolean requestSync = msg.has("requestSync") && msg.get("requestSync").asBoolean();
+            String syncMode = msg.has("syncMode") ? msg.get("syncMode").asText() : "FULL";
+            boolean isValidator = msg.has("isValidator") && msg.get("isValidator").asBoolean();
+            boolean isPublicNode = msg.has("isPublicNode") && msg.get("isPublicNode").asBoolean(); // in case you're also tracking this
+            boolean isReply = msg.has("reply") && msg.get("reply").asBoolean();
+    
+            System.out.println("Received handshake from " + peerAddress +
+                " (height=" + peerHeight + ", wantsSync=" + requestSync +
+                ", mode=" + syncMode + ", validator=" + isValidator + ", public=" + isPublicNode + ")");
+    
+            PeerInfo info = new PeerInfo(peer, peerAddress, syncMode, isValidator);
+            Node.registerPeer(peer, info);
+    
+            int myHeight = blockchainDB.getHeight();
+    
+            if (requestSync && myHeight > peerHeight) {
+                sendSyncResponse(peer, peerHeight, syncMode);
+            }
+            if(!isReply) {
+                sendHandshakeBack(peer);
+            }
 
-        System.out.println("Received handshake from " + peerAddress +
-            " (height=" + peerHeight + ", wantsSync=" + requestSync + 
-            ", mode=" + syncMode + ")");
-
-        // ✅ Save this peer's sync mode for future decisions
-        PeerInfo info = new PeerInfo(peer, peerAddress, syncMode, isValidator);
-        Node.registerPeer(peer, info); // <— you need this helper method in Node class
-
-        int myHeight = blockchainDB.getHeight();
-
-        if (requestSync && myHeight > peerHeight) {
-            sendSyncResponse(peer, peerHeight, syncMode);
+    
+        } catch (Exception e) {
+            System.out.println("Failed to parse handshake request.");
+            e.printStackTrace();
         }
-    } catch (Exception e) {
-        System.out.println("Failed to parse handshake request.");
-        e.printStackTrace();
     }
-}
 
     private void sendSyncResponse(Socket peer, int peerHeight, String syncMode) {
         try {
@@ -200,7 +219,7 @@ public class MessageRouter {
                 response.set("confirmedTxs", confirmedTxArray);
     
                 out.println(mapper.writeValueAsString(response));
-                System.out.println("📤 Sent TX_ONLY sync_response to: " + peer.getInetAddress());
+                System.out.println("Sent TX_ONLY sync_response to: " + peer.getInetAddress());
     
                 return;
             }
@@ -228,13 +247,13 @@ public class MessageRouter {
     
             out.println(mapper.writeValueAsString(response));
     
-            System.out.println("📡 Sent FULL sync_response to " + peer.getInetAddress().getHostAddress() +
+            System.out.println("Sent FULL sync_response to " + peer.getInetAddress().getHostAddress() +
                 " | Blocks: " + blocksArray.size() +
                 " | Confirmed TXs: " + confirmedTxArray.size() +
                 " | Mempool TXs: " + mempoolArray.size());
     
         } catch (Exception e) {
-            System.err.println("❌ Failed to handle sync_request:");
+            System.err.println("Failed to handle sync_request:");
             e.printStackTrace();
         }
     }
@@ -257,7 +276,7 @@ public class MessageRouter {
                 if (tx.lightSyncVerify()) {
                     syncTxCache.put(tx.getTxHash(), tx);
                 } else {
-                    System.err.println("❌ Invalid sync TX: " + tx.getTxHash());
+                    System.err.println("Invalid sync TX: " + tx.getTxHash());
                 }
             }
     
@@ -289,7 +308,7 @@ public class MessageRouter {
                 block.setFullTransactions(orderedTxs); // Set full TXs to enable merkle/hash validation
     
                 if (!block.validateBlock(lastValidHash)) {
-                    System.err.println("❌ Block #" + height + " failed full validation");
+                    System.err.println(" Block #" + height + " failed full validation");
                     continue;
                 }
     
@@ -305,7 +324,7 @@ public class MessageRouter {
                     block.createJSON().getBytes(StandardCharsets.UTF_8)
                 );
     
-                System.out.println("✅ Saved block #" + height);
+                System.out.println("Saved block #" + height);
                 lastValidHash = block.getHash();
                 blockCount++;
             }
@@ -315,7 +334,7 @@ public class MessageRouter {
                 TX tx = mapper.treeToValue(txNode, TX.class);
                 MempoolService.addTransaction(tx.getTxHash(), tx.createJSON());
             }
-            System.out.println("📥 Mempool imported: " + mempool.size());
+            System.out.println("Mempool imported: " + mempool.size());
     
             // 🔹 Stage 4: Process buffered blocks
             List<Block> bufferedBlocks = PendingBlockManager.getBufferedBlocks();
@@ -339,7 +358,7 @@ public class MessageRouter {
                     if (tx != null && tx.verfifyTransaction()) {
                         orderedTxs.add(tx);
                     } else {
-                        System.err.println("❌ Missing or invalid TX in buffered block: " + hash);
+                        System.err.println("Missing or invalid TX in buffered block: " + hash);
                     }
                 }
     
@@ -347,7 +366,7 @@ public class MessageRouter {
     
                 String expectedPrevHash = (height == 0) ? "00000000000000000000" : lastValidHash;
                 if (!block.validateBlock(expectedPrevHash)) {
-                    System.err.println("❌ Buffered block #" + height + " failed validation");
+                    System.err.println("Buffered block #" + height + " failed validation");
                     continue;
                 }
     
@@ -369,14 +388,14 @@ public class MessageRouter {
     
             // 🔹 Final Summary
             portal.setIsSyncing(false);
-            System.out.println("✅ Sync Complete:");
+            System.out.println("Sync Complete:");
             System.out.println("   ➤ Confirmed TXs processed: " + txCount);
             System.out.println("   ➤ Blocks saved: " + blockCount);
             System.out.println("   ➤ Buffered blocks: " + bufferedProcessed);
             System.out.println("   ➤ Mempool size: " + mempool.size());
     
         } catch (Exception e) {
-            System.err.println("❌ Failed to process sync_response:");
+            System.err.println("Failed to process sync_response:");
             e.printStackTrace();
         }
     }
@@ -395,15 +414,15 @@ public class MessageRouter {
     
             // ✅ Add and broadcast
             MempoolService.addTransaction(txHash, tx.createJSON());
-            System.out.println("➕ New TX added to mempool: " + txHash);
+            System.out.println("New TX added to mempool: " + txHash);
     
             // 🌐 Gossip to other peers
             Node.broadcastTransactionStatic(tx);
 
-            System.out.println("➡️ Raw incoming TX: " + tx.createJSON());
-            System.out.println("➡️ From: " + tx.getFrom() + " | Nonce: " + tx.getNonce());
-            System.out.println("➡️ Hash: " + tx.getTxHash());
-            System.out.println("➡️ Valid JSON: " + tx.createJSON().contains(tx.getTxHash())); // sanity
+            //System.out.println("➡️ Raw incoming TX: " + tx.createJSON());
+            //System.out.println("➡️ From: " + tx.getFrom() + " | Nonce: " + tx.getNonce());
+            //System.out.println("➡️ Hash: " + tx.getTxHash());
+            //System.out.println("➡️ Valid JSON: " + tx.createJSON().contains(tx.getTxHash())); // sanity
 
             TX pulled = MempoolService.getTransaction(tx.getTxHash());
             if (pulled == null) {
@@ -434,14 +453,14 @@ public class MessageRouter {
 
             // Step 1: Signature check
             if (!block.signatureValid()){
-                System.err.println("❌ Invalid block signature");
+                System.err.println("Invalid block signature");
                 return;
             }
 
             // Step 2: Height & previous hash
             int localHeight = blockchainDB.getHeight();
             if (block.getHeight() != localHeight + 1) {
-                System.err.println("❌ Block height mismatch");
+                System.err.println("Block height mismatch");
                 return;
             }
 
@@ -450,20 +469,24 @@ public class MessageRouter {
 
             String prevHash = expectedPreviousHash;
             if (!block.getPreviousHash().equals(prevHash)) {
-                System.err.println("❌ Previous block hash mismatch");
+                System.err.println("Previous block hash mismatch");
                 return;
             }
 
-            List<TX> txList = new ArrayList<>();
+            ArrayList<TX> txList = new ArrayList<>();
+            ConcurrentHashMap<String, TX> rejectedMap = new ConcurrentHashMap<>();
             for (String hash : block.getTransactions()) {
                 TX tx = MempoolService.getTransaction(hash);
                 if (tx == null) {
-                    System.err.println("❌ Missing TX for incoming block: " + hash);
+                    System.err.println("Missing TX for incoming block: " + hash);
                     return;
                 }
                 if (!tx.verfifyTransaction()) {
-                    System.err.println("❌ TX failed full verification in incoming block: " + hash);
-                    return;
+                    System.err.println("TX failed verification: " + hash);
+                    tx.setStatus("rejected");
+                    RejectedService.saveRejectedTransaction(tx);
+                    rejectedMap.put(tx.getTxHash(), tx);
+                    continue;
                 }
                 txList.add(tx);
             }
@@ -471,12 +494,13 @@ public class MessageRouter {
             block.setFullTransactions(txList);
 
             if (!block.validateBlock(expectedPreviousHash)) {
-                System.err.println("❌ Incoming block failed validation");
+                System.err.println("Incoming block failed validation");
                 return;
             }
 
             for (TX tx : txList) {
                 WalletService.transfer(tx);
+                tx.setStatus("complete");
                 portal.beanchainTest.storeTX(tx);
             }
 
@@ -486,9 +510,114 @@ public class MessageRouter {
             );
 
             System.out.println("✅ Incoming block #" + block.getHeight() + " accepted and saved.");
+            MempoolService.removeTXs(txList, rejectedMap);
 
         } catch (Exception e) {
-            System.err.println("❌ Failed to process incoming block");
+            System.err.println("Failed to process incoming block");
+            e.printStackTrace();
+        }
+    }
+
+    private void handleMempoolSummary(JsonNode payload, Socket peer) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode remoteHashesNode = payload.get("txHashes");
+            if (remoteHashesNode == null || !remoteHashesNode.isArray()) return;
+    
+            Set<String> remoteHashes = new HashSet<>();
+            for (JsonNode node : remoteHashesNode) {
+                remoteHashes.add(node.asText());
+            }
+    
+            Set<String> localHashes = MempoolService.getAllTXHashes();
+            Set<String> missingHashes = new HashSet<>(remoteHashes);
+            missingHashes.removeAll(localHashes);
+    
+            if (!missingHashes.isEmpty()) {
+                ObjectNode request = mapper.createObjectNode();
+                request.put("type", "txRequestBatch");
+                ArrayNode reqHashes = mapper.createArrayNode();
+                for (String h : missingHashes) reqHashes.add(h);
+                request.set("payload", reqHashes);
+    
+                PrintWriter out = new PrintWriter(peer.getOutputStream(), true);
+                out.println(mapper.writeValueAsString(request));
+                System.out.println("📥 Requested missing TXs: " + missingHashes.size());
+            }
+
+            System.out.println("📥 Received mempool summary from peer: " + peer.getInetAddress());
+
+    
+        } catch (Exception e) {
+            System.err.println("❌ Failed to handle mempool_summary:");
+            e.printStackTrace();
+        }
+    }
+
+    private void handleTxRequestBatch(JsonNode payload, Socket peer) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            List<String> requestedHashes = new ArrayList<>();
+            for (JsonNode node : payload) requestedHashes.add(node.asText());
+    
+            ArrayNode txBatch = mapper.createArrayNode();
+            for (String hash : requestedHashes) {
+                TX tx = MempoolService.getTransaction(hash);
+                if (tx != null) {
+                    txBatch.add(mapper.readTree(tx.createJSON()));
+                }
+            }
+    
+            ObjectNode response = mapper.createObjectNode();
+            response.put("type", "txBatch");
+            response.set("payload", txBatch);
+    
+            PrintWriter out = new PrintWriter(peer.getOutputStream(), true);
+            out.println(mapper.writeValueAsString(response));
+            System.out.println("📤 Sent TX batch with " + txBatch.size() + " TXs");
+    
+        } catch (Exception e) {
+            System.err.println("❌ Failed to handle txRequestBatch:");
+            e.printStackTrace();
+        }
+    }
+
+    private void handleTxBatch(JsonNode payload) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            for (JsonNode node : payload) {
+                TX tx = mapper.treeToValue(node, TX.class);
+                if (!MempoolService.contains(tx.getTxHash())) {
+                    MempoolService.addTransaction(tx.getTxHash(), tx.createJSON());
+                    System.out.println("🔁 Recovered TX from peer: " + tx.getTxHash());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Failed to handle txBatch:");
+            e.printStackTrace();
+        }
+    }
+
+    private void sendHandshakeBack(Socket peer) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode handshake = mapper.createObjectNode();
+            handshake.put("type", "handshake");
+            handshake.put("address", portal.admin.address);
+            handshake.put("blockHeight", blockchainDB.getHeight());
+            handshake.put("requestSync", false); // already syncing the other way
+            handshake.put("syncMode", "FULL");
+            handshake.put("isValidator", true); // or false if this node isn't a validator
+            handshake.put("isPublicNode", true); // optional if you're tracking this
+            handshake.put("reply", true);
+    
+            PrintWriter out = new PrintWriter(peer.getOutputStream(), true);
+            out.println(mapper.writeValueAsString(handshake));
+    
+            System.out.println("↩️ Sent handshake back to peer: " + peer.getInetAddress());
+    
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send handshake back to peer");
             e.printStackTrace();
         }
     }

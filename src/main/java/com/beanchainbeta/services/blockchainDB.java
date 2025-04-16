@@ -349,5 +349,17 @@ public class blockchainDB {
     
         return result;
     }
+
+    //dev explorer 
+
+    public byte[] getRaw(String key) {
+        try {
+            return blockchainDB.db.get(key.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            System.err.println("❌ Failed to get raw key from DB: " + key);
+            return null;
+        }
+    }
+    
 }
 
