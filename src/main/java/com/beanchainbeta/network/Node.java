@@ -204,5 +204,31 @@ public class Node {
         .collect(Collectors.toList());
     }
 
+    public static void broadcastRejection(String txHash) {
+        if (instance != null) {
+            instance.broadcastRejectionInternal(txHash);
+        }
+    }
+
+    private void broadcastRejectionInternal(String txHash) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode message = mapper.createObjectNode();
+            message.put("type", "tx_rejected");
+    
+            ObjectNode payload = mapper.createObjectNode();
+            payload.put("txHash", txHash);
+    
+            message.set("payload", payload);
+            String jsonMessage = mapper.writeValueAsString(message);
+    
+            broadcast(jsonMessage);
+            System.out.println("📣 Broadcasted rejection for TX: " + txHash);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to broadcast rejection gossip:");
+            e.printStackTrace();
+        }
+    }
+
 }
 

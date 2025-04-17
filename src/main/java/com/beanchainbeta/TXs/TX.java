@@ -5,6 +5,8 @@ import java.security.MessageDigest;
 import java.security.PrivateKey;
 
 import com.beanchainbeta.Validation.TransactionVerifier;
+import com.beanchainbeta.controllers.MessageRouter;
+import com.beanchainbeta.network.Node;
 import com.beanchainbeta.services.RejectedService;
 import com.beanchainbeta.services.WalletService;
 import com.beanchainbeta.tools.SHA256TransactionSigner;
@@ -134,13 +136,13 @@ public class TX {
         }
 
         boolean hasAddy = (this.from !=null);
-        System.out.println("HasAddy" + (hasAddy));
+        //System.out.println("HasAddy" + (hasAddy));
         boolean hasSignature = (this.signature !=null);
-        System.out.println("HasSignature " + (hasSignature));
-        System.out.println(this.txHash + " vs gen: " + this.generateHash());
+        //System.out.println("HasSignature " + (hasSignature));
+        //System.out.println(this.txHash + " vs gen: " + this.generateHash());
         boolean correctHash = (this.txHash.equals(this.generateHash()));
-        System.out.println("CorrectHash " + (correctHash));
-        System.out.println("CorrectNonce " + (this.nonce == WalletService.getNonce(from)));
+        //System.out.println("CorrectHash " + (correctHash));
+        //System.out.println("CorrectNonce " + (this.nonce == WalletService.getNonce(from)));
         boolean correctNonce = (this.nonce == (WalletService.getNonce(from)));
         boolean addyMatch = false;
         boolean validOwner = false;
@@ -159,6 +161,7 @@ public class TX {
                 System.out.println("** TX FAILED: " +txHash + " VERIFICATION FAILURE **");
                 this.setStatus("rejected");
                 RejectedService.saveRejectedTransaction(this);
+                Node.broadcastRejection(txHash);
                 return false;
             }
 
@@ -166,6 +169,7 @@ public class TX {
             System.out.println("** TX FAILED: " + txHash + " INFO MISMATCH **");
             this.setStatus("rejected");
             RejectedService.saveRejectedTransaction(this);
+            Node.broadcastRejection(txHash);
             return false;
 
         }

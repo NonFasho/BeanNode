@@ -154,6 +154,15 @@ public class MempoolService {
         return transactions.keySet();
     }
 
+    public static void removeTxByHash(String txHash) {
+        TX tx = getTransaction(txHash); // get the full object before it’s removed
+        if (tx != null) {
+            tx.setStatus("rejected");
+            RejectedService.saveRejectedTransaction(tx);
+        }
+        removeSingleTx(txHash);
+    }
+
 
 }
 

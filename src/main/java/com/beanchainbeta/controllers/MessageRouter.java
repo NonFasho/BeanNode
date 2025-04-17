@@ -64,6 +64,11 @@ public class MessageRouter {
             case "txBatch":
                 handleTxBatch(message.get("payload"));
                 break;
+            case "tx_rejected": 
+                String txHash = message.get("payload").get("txHash").asText();
+                System.out.println("🔁 Rejection gossip received for TX: " + txHash);
+                MempoolService.removeTxByHash(txHash);
+                break;    
             default:
                 System.out.println("Unknown message type: " + type);
         }
