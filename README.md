@@ -57,9 +57,9 @@ This structure allows for modular expansion while keeping core chain logic clean
 
 ## Running a Node
 
-To get started running a node or participating in the BeanChain network, contact the dev team:
+To get started running a node or participating in the BeanChain network,
 
-**~samfawk@limabean.xyz~**
+Contact the dev team: [samfawk@limabean.xyz](mailto:samfawk@limabean.xyz)
 
 A full deployment guide will be added soon.
 
