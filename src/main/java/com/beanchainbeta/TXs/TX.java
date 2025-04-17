@@ -27,8 +27,6 @@ public class TX {
 
     }
 
-    // for wallet app functions 
-    // 
     public TX(String from, String publicKeyHex, String to, double amount, int nonce, long gasFee) {
         this.from = from;
         this.publicKeyHex = publicKeyHex;
@@ -136,13 +134,13 @@ public class TX {
         }
 
         boolean hasAddy = (this.from !=null);
-        //System.out.println("HasAddy" + (hasAddy));
+        System.out.println("HasAddy" + (hasAddy));
         boolean hasSignature = (this.signature !=null);
-        //System.out.println("HasSignature " + (hasSignature));
-        //System.out.println(this.txHash + " vs gen: " + this.generateHash());
+        System.out.println("HasSignature " + (hasSignature));
+        System.out.println(this.txHash + " vs gen: " + this.generateHash());
         boolean correctHash = (this.txHash.equals(this.generateHash()));
-        //System.out.println("CorrectHash " + (correctHash));
-        //System.out.println("CorrectNonce " + (this.nonce == WalletService.getNonce(from)));
+        System.out.println("CorrectHash " + (correctHash));
+        System.out.println("CorrectNonce " + (this.nonce == WalletService.getNonce(from)));
         boolean correctNonce = (this.nonce == (WalletService.getNonce(from)));
         boolean addyMatch = false;
         boolean validOwner = false;
@@ -150,13 +148,12 @@ public class TX {
 
         if(hasAddy && hasSignature && correctHash && correctNonce) {
             addyMatch = TransactionVerifier.walletMatch(publicKeyHex, from);
-            //System.out.println("addymatch " + addyMatch);
+            //System.out.println("addymatch: " + addyMatch);
             validOwner = TransactionVerifier.verifySHA256Transaction(publicKeyHex, hexToBytes(txHash), signature);
-            //System.out.println("validowner " + validOwner);
+            //System.out.println("validowner: " + validOwner);
             senderHasEnough = WalletService.hasCorrectAmount(from, amount, gasFee);
-            //System.out.println("sender has enough " + senderHasEnough);
+            //System.out.println("sender has enough: " + senderHasEnough);
             if(addyMatch && validOwner && senderHasEnough) {
-                //WalletService.incrementNonce(this.from);
                 return true;
             } else {
                 System.out.println("** TX FAILED: " +txHash + " VERIFICATION FAILURE **");

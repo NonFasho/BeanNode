@@ -419,7 +419,7 @@ public class MessageRouter {
             // 🌐 Gossip to other peers
             Node.broadcastTransactionStatic(tx);
 
-            //System.out.println("➡️ Raw incoming TX: " + tx.createJSON());
+            System.out.println("➡️ Raw incoming TX: " + tx.createJSON());
             //System.out.println("➡️ From: " + tx.getFrom() + " | Nonce: " + tx.getNonce());
             //System.out.println("➡️ Hash: " + tx.getTxHash());
             //System.out.println("➡️ Valid JSON: " + tx.createJSON().contains(tx.getTxHash())); // sanity

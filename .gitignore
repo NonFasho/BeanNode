@@ -16,6 +16,7 @@ Thumbs.db
 # Scripts
 *.bat
 *.sh
+*.ps1
 
 # Maven
 *.iml
