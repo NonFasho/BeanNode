@@ -1,4 +1,4 @@
-package com.beanchainbeta.admin;
+package com.beanchainbeta.nodePortal;
 
 import java.security.PrivateKey;
 
@@ -27,7 +27,7 @@ public class adminCube {
     Thread nodeThread = new Thread(() -> {
         node.start();
 
-        // 🌱 If NOT a bootstrap node, connect to bootstrap peer
+        // If NOT a bootstrap node, connect to bootstrap peer
         if (!ConfigLoader.isBootstrapNode) {
             try {
                 System.out.println("Connecting to bootstrap node at " + ConfigLoader.bootstrapIp);
@@ -44,14 +44,6 @@ public class adminCube {
     nodeThread.setDaemon(false);
     nodeThread.start();
 
-    // TEST INFO
-    //System.out.println("Private Key: " + privateKeyHex);
-    //System.out.println("Public Key: " + publicKeyHex);
-    //System.out.println("Node IP: " + nodeIp);
 }
 
-    public static void main(String[] args) throws Exception {
-        
-
-    }
 }

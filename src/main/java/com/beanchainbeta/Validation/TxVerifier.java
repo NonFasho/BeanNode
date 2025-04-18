@@ -1,4 +1,4 @@
-package com.beanchainbeta.Validation;
+package com.beanchainbeta.validation;
 
 import com.beanchainbeta.network.Node;
 import com.beanchainbeta.services.RejectedService;

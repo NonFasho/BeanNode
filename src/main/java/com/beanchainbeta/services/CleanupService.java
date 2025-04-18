@@ -18,7 +18,7 @@ public class CleanupService {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final long MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
 
-    // 🧼 Remove old rejected TXs
+    // Remove old rejected TXs
     public static void cleanRejectedDB() {
         long now = System.currentTimeMillis();
         List<String> keysToDelete = new ArrayList<>();
@@ -47,7 +47,7 @@ public class CleanupService {
         }
     }
 
-    // 🧼 Remove timed-out mempool TXs
+    // Remove timed-out mempool TXs
     public static void cleanMempoolTimeouts() {
         long now = System.currentTimeMillis();
         ArrayList<TX> mempool = MempoolService.getTxFromPool();

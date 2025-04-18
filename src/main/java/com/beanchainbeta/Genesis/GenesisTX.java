@@ -1,4 +1,4 @@
-package com.beanchainbeta.Genesis;
+package com.beanchainbeta.genesis;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

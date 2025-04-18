@@ -1,13 +1,13 @@
-package com.beanchainbeta.Validation;
+package com.beanchainbeta.validation;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.beanchainbeta.admin.prompt;
+import com.bean_core.beanify.Branding;
 import com.beanchainbeta.nodePortal.portal;
 
 
-public class TimerFunc {
+public class BlockTimerBeta {
 
     private static final AtomicInteger counter = new AtomicInteger(0);
 
@@ -20,7 +20,7 @@ public class TimerFunc {
                 BlockBuilder.blockMaker(portal.admin.privateKeyHex); 
 
                 if(count % 10 == 0) {
-                    System.out.println("\u001B[32m" + prompt.logo + "\u001B[0m");
+                    System.out.println("\u001B[32m" + Branding.logo + "\u001B[0m");
                 }
             } catch (Exception e) {
                 System.err.println("Error in blockMaker: " + e.getMessage());

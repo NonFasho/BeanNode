@@ -2,11 +2,10 @@ package com.beanchainbeta.services;
 
 import org.iq80.leveldb.*;
 
-import com.beanchainbeta.Genesis.GenesisTX;
 import com.bean_core.Block.*;
 import com.beanchainbeta.controllers.DBManager;
+import com.beanchainbeta.genesis.GenesisTX;
 import com.bean_core.TXs.*;
-import com.bean_core.crypto.*;
 import java.nio.charset.StandardCharsets;
 import static org.iq80.leveldb.impl.Iq80DBFactory.*;
 import java.util.ArrayList;
@@ -25,7 +24,7 @@ public class blockchainDB {
 
 
     public blockchainDB() {
-        this.db = DBManager.getDB("BeanChainDBTest"); 
+        blockchainDB.db = DBManager.getDB("BeanChainDBTest"); 
 
         try {
             if (!checkGenBlock()) {

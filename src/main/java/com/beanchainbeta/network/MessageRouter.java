@@ -1,4 +1,4 @@
-package com.beanchainbeta.controllers;
+package com.beanchainbeta.network;
 
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -14,15 +14,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.iq80.leveldb.DBIterator;
 
 import com.bean_core.Block.*;
-import com.beanchainbeta.Validation.PendingBlockManager;
-import com.beanchainbeta.Validation.TxVerifier;
-import com.beanchainbeta.network.Node;
-import com.beanchainbeta.network.PeerInfo;
 import com.beanchainbeta.nodePortal.portal;
 import com.beanchainbeta.services.MempoolService;
 import com.beanchainbeta.services.RejectedService;
 import com.beanchainbeta.services.WalletService;
 import com.beanchainbeta.services.blockchainDB;
+import com.beanchainbeta.validation.PendingBlockManager;
+import com.beanchainbeta.validation.TxVerifier;
 import com.bean_core.TXs.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

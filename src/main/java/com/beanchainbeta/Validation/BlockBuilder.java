@@ -1,4 +1,4 @@
-package com.beanchainbeta.Validation;
+package com.beanchainbeta.validation;
 
 import java.util.ArrayList;
 import java.util.Comparator;

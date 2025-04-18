@@ -8,7 +8,6 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import com.bean_core.Block.*;
-import com.beanchainbeta.controllers.MessageRouter;
 import com.beanchainbeta.nodePortal.portal;
 import com.beanchainbeta.services.blockchainDB;
 import com.bean_core.TXs.*;
