@@ -3,12 +3,13 @@ package com.beanchainbeta.services;
 import java.io.IOException;
 import org.iq80.leveldb.DB;
 import org.springframework.stereotype.Service;
-import com.beanchainbeta.TXs.TX;
-import com.beanchainbeta.Validation.TransactionVerifier;
+
 import com.beanchainbeta.controllers.DBManager;
 import com.beanchainbeta.nodePortal.portal;
-import com.beanchainbeta.tools.StateWallet;
-import com.beanchainbeta.tools.beantoshinomics;
+import com.bean_core.Models.*;
+import com.bean_core.TXs.*;
+import com.bean_core.crypto.*;
+import com.bean_core.Utils.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -26,7 +27,17 @@ public class WalletService {
     
 
     //dev testing
-    
+
+    public static boolean walletExists(String address) {
+        try {
+            byte[] value = db.get(address.getBytes(StandardCharsets.UTF_8));
+            return value != null;
+        } catch (Exception e) {
+            System.err.println("⚠️ Error checking wallet existence: " + address);
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     public static void genBlock() throws IOException{
         String teamWallet = "BEANX:0x1c8496175b3f4802e395db5fab4dd66e09c431b2";

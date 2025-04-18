@@ -34,6 +34,11 @@
             <artifactId>jackson-databind</artifactId>
             <version>2.15.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.beanchain</groupId>
+            <artifactId>bean-core</artifactId>
+            <version>0.1.0</version>
+        </dependency>
     </dependencies>
 
     <properties>

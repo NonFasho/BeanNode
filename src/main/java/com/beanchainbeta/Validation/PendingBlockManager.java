@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import com.bean_core.Block.*;
 
 public class PendingBlockManager {
     private static final Map<String, Block> pendingBlocks = new ConcurrentHashMap<>();

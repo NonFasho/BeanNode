@@ -1,11 +1,12 @@
 package com.beanchainbeta.services;
 
 import org.iq80.leveldb.*;
-import com.beanchainbeta.TXs.GenesisTX;
-import com.beanchainbeta.TXs.TX;
-import com.beanchainbeta.Validation.Block;
+
+import com.beanchainbeta.Genesis.GenesisTX;
+import com.bean_core.Block.*;
 import com.beanchainbeta.controllers.DBManager;
-import com.beanchainbeta.tools.WalletGenerator;
+import com.bean_core.TXs.*;
+import com.bean_core.crypto.*;
 import java.nio.charset.StandardCharsets;
 import static org.iq80.leveldb.impl.Iq80DBFactory.*;
 import java.util.ArrayList;

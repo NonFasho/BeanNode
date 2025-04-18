@@ -12,9 +12,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.iq80.leveldb.DBIterator;
-import com.beanchainbeta.TXs.TX;
-import com.beanchainbeta.Validation.Block;
+
+import com.bean_core.Block.*;
 import com.beanchainbeta.Validation.PendingBlockManager;
+import com.beanchainbeta.Validation.TxVerifier;
 import com.beanchainbeta.network.Node;
 import com.beanchainbeta.network.PeerInfo;
 import com.beanchainbeta.nodePortal.portal;
@@ -22,6 +23,7 @@ import com.beanchainbeta.services.MempoolService;
 import com.beanchainbeta.services.RejectedService;
 import com.beanchainbeta.services.WalletService;
 import com.beanchainbeta.services.blockchainDB;
+import com.bean_core.TXs.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -278,7 +280,7 @@ public class MessageRouter {
             Map<String, TX> syncTxCache = new HashMap<>();
             for (JsonNode txNode : confirmedTxs) {
                 TX tx = mapper.treeToValue(txNode, TX.class);
-                if (tx.lightSyncVerify()) {
+                if (TxVerifier.lightSyncVerify(tx)) {
                     syncTxCache.put(tx.getTxHash(), tx);
                 } else {
                     System.err.println("Invalid sync TX: " + tx.getTxHash());
@@ -360,7 +362,7 @@ public class MessageRouter {
                 for (String hash : block.getTransactions()) {
                     TX tx = syncTxCache.get(hash);
                     if (tx == null) tx = MempoolService.getTransaction(hash); // fallback
-                    if (tx != null && tx.verfifyTransaction()) {
+                    if (tx != null && TxVerifier.verrifyTransaction(tx)) {
                         orderedTxs.add(tx);
                     } else {
                         System.err.println("Missing or invalid TX in buffered block: " + hash);
@@ -480,19 +482,38 @@ public class MessageRouter {
 
             ArrayList<TX> txList = new ArrayList<>();
             ConcurrentHashMap<String, TX> rejectedMap = new ConcurrentHashMap<>();
+
+            // Step 1: Retrieve all TXs
+            HashMap<String, Integer> simulatedNonces = new HashMap<>();
+
             for (String hash : block.getTransactions()) {
                 TX tx = MempoolService.getTransaction(hash);
+
                 if (tx == null) {
                     System.err.println("Missing TX for incoming block: " + hash);
                     return;
                 }
-                if (!tx.verfifyTransaction()) {
+
+                if (!TxVerifier.verrifyTransaction(tx)) {
                     System.err.println("TX failed verification: " + hash);
                     tx.setStatus("rejected");
                     RejectedService.saveRejectedTransaction(tx);
                     rejectedMap.put(tx.getTxHash(), tx);
                     continue;
                 }
+
+                String sender = tx.getFrom();
+                int expectedNonce = simulatedNonces.getOrDefault(sender, WalletService.getNonce(sender));
+
+                if (tx.getNonce() != expectedNonce) {
+                    System.err.println("❌ Nonce mismatch for TX " + hash + ": expected " + expectedNonce + " but got " + tx.getNonce());
+                    tx.setStatus("rejected");
+                    RejectedService.saveRejectedTransaction(tx);
+                    rejectedMap.put(tx.getTxHash(), tx);
+                    continue;
+                }
+
+                simulatedNonces.put(sender, expectedNonce + 1);
                 txList.add(tx);
             }
 

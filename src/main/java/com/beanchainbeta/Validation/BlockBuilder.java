@@ -8,14 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.beanchainbeta.TXs.TX;
 import com.beanchainbeta.network.Node;
 import com.beanchainbeta.nodePortal.portal;
 import com.beanchainbeta.services.MempoolService;
 import com.beanchainbeta.services.WalletService;
 import com.beanchainbeta.services.blockchainDB;
-import com.beanchainbeta.tools.WalletGenerator;
-import com.beanchainbeta.tools.beantoshinomics;
+import com.bean_core.TXs.*;
+import com.bean_core.crypto.*;
+import com.bean_core.Utils.*;
+import com.bean_core.Block.*;
 
 public class BlockBuilder {
     static ArrayList<TX> acceptedTx = new ArrayList<>();
@@ -24,47 +25,52 @@ public class BlockBuilder {
     public static ArrayList<TX> getValidTxList() throws Exception {
         ArrayList<TX> mempool = MempoolService.getTxFromPool();
         ArrayList<TX> validTxs = new ArrayList<>();
-
+        Map<String, Integer> simulatedNonces = new HashMap<>();
+    
         for (TX tx : mempool) {
-            if(tx == null){
-                //System.out.println("Skipped null transaction in mempool.");
-                continue;
-            }
-            if(tx.getSignature().equals("GENESIS-SIGNATURE")){
+            if (tx == null) continue;
+            if ("GENESIS-SIGNATURE".equals(tx.getSignature())) {
                 systemTX.add(tx);
                 continue;
             }
-
-            if (tx.getSignature() != null && tx.verfifyTransaction()) {
-                validTxs.add(tx);
-            } else {
-                //System.out.println("Invalid TX: " + tx.getTxHash());
-                // Store in rejectedDB
+    
+            String sender = tx.getFrom();
+    
+            // ✅ Failsafe: if wallet doesn't exist, reject
+            if (!WalletService.walletExists(sender)) {
+                System.err.println("❌ Sender wallet not found: " + sender + " | TX: " + tx.getTxHash());
+                tx.setStatus("rejected");
                 MempoolService.rejectedTransactions.put(tx.getTxHash(), tx);
-                //System.out.println(MempoolService.getRejectedTransactions(tx.getFrom()));
+                continue;
+            }
+    
+            int currentNonce = simulatedNonces.getOrDefault(sender, WalletService.getNonce(sender));
+    
+            // Skip if TX nonce doesn't match expected
+            if (tx.getNonce() != currentNonce) continue;
+    
+            if (tx.getSignature() != null && TxVerifier.verrifyTransaction(tx)) {
+                validTxs.add(tx);
+                simulatedNonces.put(sender, currentNonce + 1);
+            } else {
+                tx.setStatus("rejected");
+                MempoolService.rejectedTransactions.put(tx.getTxHash(), tx);
             }
         }
-
+    
         Map<String, List<TX>> groupedBySender = new HashMap<>();
         for (TX tx : validTxs) {
-            groupedBySender
-                .computeIfAbsent(tx.getFrom(), k -> new ArrayList<>())
-                .add(tx);
-                //System.out.println("TX: " + tx.getTxHash() + " GAS: " + tx.getGasFee());
+            groupedBySender.computeIfAbsent(tx.getFrom(), k -> new ArrayList<>()).add(tx);
         }
-
-        // Sort each sender's TXs by nonce
+    
         for (List<TX> txList : groupedBySender.values()) {
             txList.sort(Comparator.comparingInt(TX::getNonce));
         }
-
-        // Flatten back into list, sorting by the gas fee of the first tx in each sender group
-        validTxs = groupedBySender.values().stream()
+    
+        return groupedBySender.values().stream()
             .sorted((a, b) -> Long.compare(b.get(0).getGasFee(), a.get(0).getGasFee()))
             .flatMap(List::stream)
             .collect(Collectors.toCollection(ArrayList::new));
-
-        return validTxs;
     }
 
     public static void blockMaker(String validatorKey) throws Exception {

@@ -1,9 +1,9 @@
-package com.beanchainbeta.TXs;
+package com.beanchainbeta.Genesis;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-//import com.beanchainbeta.nodePixs.StateWallet;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import com.bean_core.TXs.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class GenesisTX extends TX{
@@ -12,7 +12,7 @@ public class GenesisTX extends TX{
     private double amount;
     private String txhash;
     private String signature;
-    private long timeStamp = 0L; // 🔒 Hardcoded for deterministic hash
+    private long timeStamp = 0L; 
     private int nonce = 0;
 
     public String getFrom() {return from;}
@@ -36,7 +36,7 @@ public class GenesisTX extends TX{
 
     }
 
-    private String generateHash(){
+    public String generateHash(){
         try {
             String data = from + to + amount;
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -62,12 +62,4 @@ public class GenesisTX extends TX{
         }
         return jsonString;
     }
-
-    // public void updateStateIncoming(){
-    //     StateWallet update = new StateWallet(this.to, this.amount);
-        
-    // }
-
-    
-
 }

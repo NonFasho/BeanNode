@@ -10,7 +10,9 @@ import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;
 import org.iq80.leveldb.Options;
 import org.springframework.stereotype.Service;
-import com.beanchainbeta.TXs.TX;
+
+import com.bean_core.TXs.*;
+
 import static org.iq80.leveldb.impl.Iq80DBFactory.*;
 
 @Service

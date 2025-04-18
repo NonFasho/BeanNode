@@ -6,7 +6,7 @@ import com.beanchainbeta.services.CleanupService;
 import com.beanchainbeta.services.MempoolService;
 import com.beanchainbeta.services.WalletService;
 import com.beanchainbeta.services.blockchainDB;
-import com.beanchainbeta.wizard.wizard;
+import com.bean_core.Wizard.*;
 
 public class autoStartPrivate {
     public static void nodeStart() throws Exception {

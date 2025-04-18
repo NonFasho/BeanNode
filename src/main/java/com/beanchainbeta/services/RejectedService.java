@@ -7,8 +7,8 @@ import java.util.Map;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;
 
-import com.beanchainbeta.TXs.TX;
 import com.beanchainbeta.controllers.DBManager;
+import com.bean_core.TXs.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class RejectedService {

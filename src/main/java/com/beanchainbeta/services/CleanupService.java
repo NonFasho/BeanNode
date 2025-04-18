@@ -1,8 +1,8 @@
 package com.beanchainbeta.services;
 
-import com.beanchainbeta.TXs.TX;
 import com.beanchainbeta.controllers.DBManager;
 import com.beanchainbeta.nodePortal.portal;
+import com.bean_core.TXs.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBIterator;

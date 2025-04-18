@@ -7,7 +7,7 @@ import com.beanchainbeta.Validation.TimerFunc;
 import com.beanchainbeta.config.ConfigLoader;
 import com.beanchainbeta.nodePortal.portal;
 import com.beanchainbeta.services.CleanupService;
-import com.beanchainbeta.wizard.wizard;
+import com.bean_core.Wizard.*;
 
 public class autoStart {
     

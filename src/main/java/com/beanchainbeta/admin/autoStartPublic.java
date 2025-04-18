@@ -6,7 +6,7 @@ import com.beanchainbeta.BeanChainApi;
 import com.beanchainbeta.config.ConfigLoader;
 import com.beanchainbeta.nodePortal.portal;
 import com.beanchainbeta.services.CleanupService;
-import com.beanchainbeta.wizard.wizard;
+import com.bean_core.Wizard.*;
 
 public class autoStartPublic {
     public static void nodeStart() throws Exception {
