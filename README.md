@@ -55,6 +55,21 @@ This structure allows for modular expansion while keeping core chain logic clean
 
 ---
 
+## BeanCore SDK (Modular Core Logic)
+
+This node relies on the modular `bean-core` SDK for core transaction and cryptographic logic.
+
+[BeanCore SDK Repository](https://github.com/NonFasho/BeanCore)
+
+Includes:
+- Models
+- Cryptographic tools (signing, verification, hashing)
+- Merkle root tools
+- Shared constants
+
+
+---
+
 ## Running a Node
 
 To get started running a node or participating in the BeanChain network,
@@ -89,8 +104,8 @@ BeanNode is one of several interconnected systems powering BeanChain.
 
 Other key components:
 
-- **LimaBean Wallet** (wallet frontend) – [link to repo coming soon]
-- **beanchain.io** (network explorer/visualizer) – [link to repo coming soon]
+- **LimaBean Wallet** (wallet frontend) – [(https://github.com/NonFasho/LimaBeanWallet)]
+- **beanchain.io** (network explorer/visualizer) – [(https://github.com/NonFasho/BeanChain.io)]
 - **Reward Node (RN)** – [link to repo coming soon]
 - **Contract Execution Node (CEN)** – [link to repo coming soon]
 
