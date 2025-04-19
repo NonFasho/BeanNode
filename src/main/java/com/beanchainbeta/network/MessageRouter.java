@@ -360,7 +360,7 @@ public class MessageRouter {
                 for (String hash : block.getTransactions()) {
                     TX tx = syncTxCache.get(hash);
                     if (tx == null) tx = MempoolService.getTransaction(hash); // fallback
-                    if (tx != null && TxVerifier.verrifyTransaction(tx)) {
+                    if (tx != null && TxVerifier.verifyTransaction(tx)) {
                         orderedTxs.add(tx);
                     } else {
                         System.err.println("Missing or invalid TX in buffered block: " + hash);
@@ -492,7 +492,7 @@ public class MessageRouter {
                     return;
                 }
 
-                if (!TxVerifier.verrifyTransaction(tx)) {
+                if (!TxVerifier.verifyTransaction(tx)) {
                     System.err.println("TX failed verification: " + hash);
                     tx.setStatus("rejected");
                     RejectedService.saveRejectedTransaction(tx);

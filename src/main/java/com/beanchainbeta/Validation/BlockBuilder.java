@@ -49,7 +49,7 @@ public class BlockBuilder {
             // Skip if TX nonce doesn't match expected
             if (tx.getNonce() != currentNonce) continue;
     
-            if (tx.getSignature() != null && TxVerifier.verrifyTransaction(tx)) {
+            if (tx.getSignature() != null && TxVerifier.verifyTransaction(tx)) {
                 validTxs.add(tx);
                 simulatedNonces.put(sender, currentNonce + 1);
             } else {

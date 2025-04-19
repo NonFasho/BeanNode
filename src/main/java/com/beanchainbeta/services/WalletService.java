@@ -5,7 +5,7 @@ import org.iq80.leveldb.DB;
 import org.springframework.stereotype.Service;
 
 import com.beanchainbeta.controllers.DBManager;
-import com.bean_core.Models.*;
+import com.bean_core.WalletModels.*;
 import com.bean_core.TXs.*;
 import com.bean_core.crypto.*;
 import com.bean_core.Utils.*;

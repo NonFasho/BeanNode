@@ -3,7 +3,7 @@ package com.beanchainbeta.services;
 import java.nio.charset.StandardCharsets;
 
 import com.beanchainbeta.controllers.DBManager;
-import com.bean_core.Models.*;
+import com.bean_core.WalletModels.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.iq80.leveldb.DB;
 import org.springframework.stereotype.Service;
